@@ -1,0 +1,69 @@
+// =========================
+// components/ui/AreaChartTrend.jsx (Final Cleanest Version 🚀)
+// =========================
+
+import {
+  ResponsiveContainer,
+  AreaChart,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Area,
+} from "recharts";
+import CustomTooltipArea from "./CustomTooltipArea";
+
+export default function AreaChartTrend({ title, data = [] }) {
+  const hasData = Array.isArray(data) && data.length > 0;
+
+  return (
+    <div className="w-full h-[400px] px-2">
+      <h2 className="text-lg font-semibold mb-4 text-center dark:text-white">{title}</h2>
+
+      {hasData ? (
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart
+            data={data}
+            margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
+          >
+            <defs>
+              <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3182CE" stopOpacity={0.4} />
+                <stop offset="95%" stopColor="#3182CE" stopOpacity={0.05} />
+              </linearGradient>
+            </defs>
+
+            <XAxis
+              dataKey="label"
+              stroke="#94a3b8"
+              tick={{ fontSize: 12 }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis
+              stroke="#94a3b8"
+              tick={{ fontSize: 12 }}
+              tickLine={false}
+              axisLine={false}
+            />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <Tooltip content={<CustomTooltipArea />} />
+
+            <Area
+              type="monotone"
+              dataKey="total"
+              stroke="#3182CE"
+              fillOpacity={1}
+              fill="url(#colorTotal)"
+              activeDot={{ r: 6 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="flex justify-center items-center h-full text-gray-400">
+          Tidak ada data untuk ditampilkan
+        </div>
+      )}
+    </div>
+  );
+}
