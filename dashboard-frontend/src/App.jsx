@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { Routes, Route, Link, useLocation, Navigate, useNavigate } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Link,
+  useLocation,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
 import { Menu, Sun, Moon } from "lucide-react";
 import { Toaster, toast } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,6 +16,7 @@ import BarangKeluar from "./pages/BarangKeluar";
 import DashboardRingkasan from "./pages/DashboardRingkasan";
 import UploadResetData from "./pages/UploadResetData";
 import Login from "./pages/Login";
+import InventoryData from "./pages/InventoryData"; // ✅ Tambahan
 import Logo from "./assets/logo.png";
 
 export default function App() {
@@ -23,6 +31,7 @@ export default function App() {
     { to: "/dashboard", label: "Dashboard" },
     { to: "/barang-masuk", label: "Barang Masuk" },
     { to: "/barang-keluar", label: "Barang Keluar" },
+    { to: "/inventory", label: "Inventory" }, // ✅ Tambahan
     { to: "/upload-reset", label: "Upload & Reset Data" },
   ];
 
@@ -66,7 +75,9 @@ export default function App() {
   }
 
   return (
-    <div className={`${darkMode ? "dark" : ""} min-h-screen flex flex-col`}>
+    <div
+      className={`${darkMode ? "dark" : ""} min-h-screen flex flex-col`}
+    >
       {/* Toast Global */}
       <Toaster position="top-right" reverseOrder={false} />
 
@@ -106,12 +117,13 @@ export default function App() {
 
       {/* Main Content Layout */}
       <div className="flex flex-1 bg-white dark:bg-gray-900 text-black dark:text-white transition-all">
-
         {/* Sidebar */}
         {location.pathname !== "/login" && (
-          <aside className={`bg-slate-300 dark:bg-gray-800 w-64 p-6 flex flex-col items-center shadow-lg
-            transform md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:relative z-20 h-full md:h-auto transition-transform duration-300`}>
-
+          <aside
+            className={`bg-slate-300 dark:bg-gray-800 w-64 p-6 flex flex-col items-center shadow-lg
+              transform md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} 
+              md:relative z-20 h-full md:h-auto transition-transform duration-300`}
+          >
             {/* Logo */}
             <div className="mb-8">
               <img src={Logo} alt="Logo" className="w-24 h-24 object-contain" />
@@ -141,14 +153,21 @@ export default function App() {
                 <Route path="/dashboard" element={<DashboardRingkasan />} />
                 <Route path="/barang-masuk" element={<BarangMasuk />} />
                 <Route path="/barang-keluar" element={<BarangKeluar />} />
+                <Route path="/inventory" element={<InventoryData />} /> {/* ✅ Tambahan */}
                 <Route path="/upload-reset" element={<UploadResetData />} />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="*" element={<div className="text-center text-red-600 mt-10">404 - Halaman tidak ditemukan</div>} />
+                <Route
+                  path="*"
+                  element={
+                    <div className="text-center text-red-600 mt-10">
+                      404 - Halaman tidak ditemukan
+                    </div>
+                  }
+                />
               </Routes>
             </motion.div>
           </AnimatePresence>
         </main>
-
       </div>
     </div>
   );
