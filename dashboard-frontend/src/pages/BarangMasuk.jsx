@@ -1,5 +1,4 @@
-// BarangMasuk.jsx - FINAL SUPER POLISHED DARK MODE SUPPORT 🚀
-
+// BarangMasuk.jsx – Versi diperbaiki
 import { useEffect, useState } from "react";
 import FilterUnitMasuk from "../components/ui/FilterUnitMasuk";
 import TableBarang from "../components/TableBarang";
@@ -21,7 +20,9 @@ export default function BarangMasuk() {
   const [modalOpen, setModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [formData, setFormData] = useState({ tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: "" });
+  const [formData, setFormData] = useState({
+    tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: ""
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -43,10 +44,16 @@ export default function BarangMasuk() {
 
   useEffect(() => { fetchData(); }, [filterUnit]);
 
-  const filteredData = data.filter((item) => item.nama?.toLowerCase().includes(search.toLowerCase()));
-  const indexOfLast = currentPage * itemsPerPage;
-  const indexOfFirst = indexOfLast - itemsPerPage;
-  const currentItems = filteredData.slice(indexOfFirst, indexOfLast);
+  const filteredData = data.filter((item) =>
+    item.nama?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const currentItems = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const indexOfLast = currentPage * itemsPerPage; // ✅ Diperbaiki
 
   const grafikData = () => {
     const result = {};
@@ -62,7 +69,9 @@ export default function BarangMasuk() {
     doc.text("Laporan Barang Masuk", 14, 10);
     autoTable(doc, {
       head: [["Tanggal", "Kode", "Nama", "Jumlah", "Satuan", "Unit"]],
-      body: filteredData.map((i) => [i.tanggal, i.kode, i.nama, i.jumlah, i.satuan, i.unit]),
+      body: filteredData.map((i) => [
+        i.tanggal, i.kode, i.nama, i.jumlah, i.satuan, i.unit
+      ]),
     });
     doc.save("Laporan_Barang_Masuk.pdf");
     toast.success("Export PDF berhasil!");
@@ -84,6 +93,10 @@ export default function BarangMasuk() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.jumlah || formData.jumlah < 1) {
+      toast.error("Jumlah harus lebih dari 0");
+      return;
+    }
     setIsSubmitting(true);
     const toastId = toast.loading(editId ? "Menyimpan perubahan..." : "Menyimpan data...");
     try {
@@ -130,7 +143,13 @@ export default function BarangMasuk() {
 
       <div className="flex flex-col md:flex-row gap-4">
         <FilterUnitMasuk value={filterUnit} onChange={setFilterUnit} />
-        <input type="text" placeholder="Cari nama..." className="p-2 rounded-lg border flex-1 dark:bg-gray-700 dark:text-white" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input
+          type="text"
+          placeholder="Cari nama..."
+          className="p-2 rounded-lg border flex-1 dark:bg-gray-700 dark:text-white"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       <div className="flex justify-between items-center">
@@ -150,7 +169,11 @@ export default function BarangMasuk() {
         </CardContent>
       </Card>
 
-      {loading ? (<div className="text-center py-10">Loading...</div>) : error ? (<div className="text-center text-red-500">{error}</div>) : (
+      {loading ? (
+        <div className="text-center py-10">Loading...</div>
+      ) : error ? (
+        <div className="text-center text-red-500">{error}</div>
+      ) : (
         <>
           <TableBarang data={currentItems} onEdit={handleEdit} onDelete={handleDelete} />
           <div className="flex justify-center items-center gap-4 mt-4">
@@ -166,10 +189,10 @@ export default function BarangMasuk() {
           <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-lg relative animate-fade-in">
             <h2 className="text-xl font-bold mb-4">{editId ? "Edit Barang" : "Tambah Barang"}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {['tanggal', 'kode', 'nama', 'jumlah', 'satuan', 'unit'].map((field, idx) => (
+              {["tanggal", "kode", "nama", "jumlah", "satuan", "unit"].map((field, idx) => (
                 <input
                   key={idx}
-                  type={field === 'tanggal' ? 'date' : (field === 'jumlah' ? 'number' : 'text')}
+                  type={field === "tanggal" ? "date" : field === "jumlah" ? "number" : "text"}
                   placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
                   value={formData[field]}
                   onChange={(e) => setFormData({ ...formData, [field]: e.target.value })}
@@ -179,7 +202,9 @@ export default function BarangMasuk() {
               ))}
               <div className="flex justify-end gap-2">
                 <Button variant="secondary" onClick={() => setModalOpen(false)} type="button">Batal</Button>
-                <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Menyimpan..." : "Simpan"}</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Menyimpan..." : "Simpan"}
+                </Button>
               </div>
             </form>
             <button onClick={() => setModalOpen(false)} className="absolute top-3 right-3 text-gray-600 dark:text-gray-300">✖️</button>

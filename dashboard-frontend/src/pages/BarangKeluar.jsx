@@ -15,11 +15,13 @@ export default function BarangKeluar() {
   const [filterUnit, setFilterUnit] = useState("Semua Unit");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [formData, setFormData] = useState({ tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: "" });
+  const [formData, setFormData] = useState({
+    tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: ""
+  });
+
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -29,20 +31,23 @@ export default function BarangKeluar() {
       let url = "http://localhost:3001/api/barang-keluar";
       if (filterUnit !== "Semua Unit") url += `?unit=${encodeURIComponent(filterUnit)}`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error("Gagal mengambil data");
       const result = await res.json();
       setData(result);
-      setError("");
-    } catch (err) {
-      setError(err.message);
+    } catch {
+      toast.error("Gagal mengambil data");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchData(); }, [filterUnit]);
+  useEffect(() => {
+    fetchData();
+  }, [filterUnit]);
 
-  const filteredData = data.filter((item) => item.nama.toLowerCase().includes(search.toLowerCase()));
+  const filteredData = data.filter((item) =>
+    item.nama?.toLowerCase().includes(search.trim().toLowerCase())
+  );
+
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
   const currentItems = filteredData.slice(indexOfFirst, indexOfLast);
@@ -61,7 +66,9 @@ export default function BarangKeluar() {
     doc.text("Laporan Barang Keluar", 14, 10);
     autoTable(doc, {
       head: [["Tanggal", "Kode", "Nama", "Jumlah", "Satuan", "Unit"]],
-      body: filteredData.map((i) => [i.tanggal, i.kode, i.nama, i.jumlah, i.satuan, i.unit]),
+      body: filteredData.map((i) => [
+        i.tanggal, i.kode, i.nama, i.jumlah, i.satuan, i.unit
+      ]),
     });
     doc.save("Laporan_Barang_Keluar.pdf");
     toast.success("Export PDF berhasil!");
@@ -71,12 +78,15 @@ export default function BarangKeluar() {
     const worksheet = XLSX.utils.json_to_sheet(filteredData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "BarangKeluar");
-    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-    saveAs(new Blob([excelBuffer], { type: "application/octet-stream" }), "Laporan_Barang_Keluar.xlsx");
+    const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "Laporan_Barang_Keluar.xlsx");
     toast.success("Export Excel berhasil!");
   };
 
-  const resetForm = () => { setFormData({ tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: "" }); setEditId(null); };
+  const resetForm = () => {
+    setFormData({ tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: "" });
+    setEditId(null);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -100,7 +110,11 @@ export default function BarangKeluar() {
     }
   };
 
-  const handleEdit = (item) => { setFormData(item); setEditId(item.id); setModalOpen(true); };
+  const handleEdit = (item) => {
+    setFormData(item);
+    setEditId(item.id);
+    setModalOpen(true);
+  };
 
   const handleDelete = async (id) => {
     if (!confirm("Yakin mau hapus barang ini?")) return;
@@ -121,7 +135,13 @@ export default function BarangKeluar() {
 
       <div className="flex flex-col md:flex-row gap-4">
         <FilterUnitKeluar value={filterUnit} onChange={setFilterUnit} />
-        <input type="text" placeholder="Cari nama..." className="p-2 rounded-lg border flex-1" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input
+          type="text"
+          placeholder="Cari nama..."
+          className="p-2 rounded-lg border flex-1 dark:bg-gray-700 dark:text-white"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       <div className="flex justify-between items-center">
@@ -141,13 +161,15 @@ export default function BarangKeluar() {
         </CardContent>
       </Card>
 
-      {loading ? (<div className="text-center py-10">Loading...</div>) : error ? (<div className="text-center text-red-500">{error}</div>) : (
+      {loading ? (
+        <div className="text-center py-10">Loading...</div>
+      ) : (
         <>
           <TableBarang data={currentItems} onEdit={handleEdit} onDelete={handleDelete} />
           <div className="flex justify-center items-center gap-4 mt-4">
             <Button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} variant="secondary" disabled={currentPage === 1}>Previous</Button>
             <span>Page {currentPage}</span>
-            <Button onClick={() => setCurrentPage((p) => (indexOfLast >= filteredData.length ? p : p + 1))} variant="secondary" disabled={indexOfLast >= filteredData.length}>Next</Button>
+            <Button onClick={() => setCurrentPage((p) => indexOfLast >= filteredData.length ? p : p + 1)} variant="secondary" disabled={indexOfLast >= filteredData.length}>Next</Button>
           </div>
         </>
       )}
@@ -155,24 +177,27 @@ export default function BarangKeluar() {
       {modalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-lg relative">
-            <h2 className="text-xl font-bold mb-4 dark:text-white">{editId ? "Edit Barang" : "Tambah Barang"}</h2>
+            <h2 className="text-xl font-bold mb-4 dark:text-white">
+              {editId ? "Edit Barang" : "Tambah Barang"}
+            </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <input type="date" value={formData.tanggal} onChange={(e) => setFormData({ ...formData, tanggal: e.target.value })} className="border p-2 w-full rounded-md dark:bg-gray-700 dark:text-white" required />
-              <input type="text" value={formData.kode} onChange={(e) => setFormData({ ...formData, kode: e.target.value })} placeholder="Kode" className="border p-2 w-full rounded-md dark:bg-gray-700 dark:text-white" required />
-              <input type="text" value={formData.nama} onChange={(e) => setFormData({ ...formData, nama: e.target.value })} placeholder="Nama Barang" className="border p-2 w-full rounded-md dark:bg-gray-700 dark:text-white" required />
-              <input type="number" value={formData.jumlah} onChange={(e) => setFormData({ ...formData, jumlah: e.target.value })} placeholder="Jumlah" className="border p-2 w-full rounded-md dark:bg-gray-700 dark:text-white" required />
-              <input type="text" value={formData.satuan} onChange={(e) => setFormData({ ...formData, satuan: e.target.value })} placeholder="Satuan" className="border p-2 w-full rounded-md dark:bg-gray-700 dark:text-white" required />
-              <input type="text" value={formData.unit} onChange={(e) => setFormData({ ...formData, unit: e.target.value })} placeholder="Unit" className="border p-2 w-full rounded-md dark:bg-gray-700 dark:text-white" required />
+              {["tanggal", "kode", "nama", "jumlah", "satuan", "unit"].map((field) => (
+                <input
+                  key={field}
+                  type={field === "tanggal" ? "date" : field === "jumlah" ? "number" : "text"}
+                  placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
+                  value={formData[field]}
+                  onChange={(e) => setFormData({ ...formData, [field]: e.target.value })}
+                  className="border p-2 w-full rounded-md dark:bg-gray-700 dark:text-white"
+                  required
+                />
+              ))}
               <div className="flex justify-end gap-2">
                 <Button variant="secondary" onClick={() => setModalOpen(false)} type="button">Batal</Button>
                 <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Menyimpan..." : "Simpan"}</Button>
               </div>
             </form>
-            <button
-              onClick={() => setModalOpen(false)}
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 dark:text-gray-300 text-2xl font-bold"
-              aria-label="Tutup"
-            >
+            <button onClick={() => setModalOpen(false)} className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 dark:text-gray-300 text-2xl font-bold">
               ✖️
             </button>
           </div>

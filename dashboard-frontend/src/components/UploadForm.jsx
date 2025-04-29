@@ -2,14 +2,14 @@ import { useState, useRef } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { UploadCloud, XCircle } from "lucide-react";
-import Button from "../components/ui/Button";
+import Button from "./ui/Button";
 
 export default function UploadForm({ type }) {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const inputRef = useRef();
-  const intervalRef = useRef(null); // ✅ Simpan interval progress
+  const intervalRef = useRef(null);
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -35,10 +35,10 @@ export default function UploadForm({ type }) {
   const startFakeProgress = () => {
     let fake = 0;
     intervalRef.current = setInterval(() => {
-      fake += Math.random() * 2 + 1; // Naik antara 1% sampai 3%
-      if (fake >= 98) fake = 98; // STOP di 98%, tunggu server bales OK
+      fake += Math.random() * 2 + 1;
+      if (fake >= 98) fake = 98;
       setProgress(Math.floor(fake));
-    }, 50); // Update tiap 50ms
+    }, 50);
   };
 
   const handleUpload = async (e) => {
@@ -54,23 +54,28 @@ export default function UploadForm({ type }) {
     try {
       setUploading(true);
       setProgress(0);
-      startFakeProgress(); // ✅ Mulai fake progress jalan
+      startFakeProgress();
 
-      const endpoint =
-        type === "masuk" ? "/upload-barang-masuk" : "/upload-barang-keluar";
+      // Tentukan endpoint berdasarkan tipe
+      const endpointMap = {
+        masuk: "/upload-barang-masuk",
+        keluar: "/upload-barang-keluar",
+        inventory: "/upload-inventory",
+      };
+
+      const endpoint = endpointMap[type] || "/upload-inventory";
 
       await axios.post(`http://localhost:3001${endpoint}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      // Server OK, fake progress lanjut ke 100%
       clearInterval(intervalRef.current);
       setProgress(100);
 
       setTimeout(() => {
         toast.success("Upload berhasil!");
-        handleRemoveFile(); // ✅ Reset semua
-      }, 500); // Delay 0.5 detik biar kerasa natural
+        handleRemoveFile();
+      }, 500);
     } catch (err) {
       toast.error("Gagal meng-upload data!");
       console.error(err);
@@ -81,9 +86,21 @@ export default function UploadForm({ type }) {
     }
   };
 
+  const getButtonLabel = () => {
+    switch (type) {
+      case "masuk":
+        return "Upload Barang Masuk";
+      case "keluar":
+        return "Upload Barang Keluar";
+      case "inventory":
+        return "Upload Inventory";
+      default:
+        return "Upload File";
+    }
+  };
+
   return (
     <form onSubmit={handleUpload} className="space-y-4">
-      {/* Area Drag & Drop */}
       <div
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -95,7 +112,6 @@ export default function UploadForm({ type }) {
           {file ? file.name : "Drag file ke sini atau klik untuk pilih file"}
         </p>
 
-        {/* Tombol Hapus File */}
         {file && (
           <button
             type="button"
@@ -118,7 +134,6 @@ export default function UploadForm({ type }) {
         className="hidden"
       />
 
-      {/* Progress Bar */}
       {uploading && (
         <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
           <div
@@ -128,16 +143,13 @@ export default function UploadForm({ type }) {
         </div>
       )}
 
-      {/* Tombol Submit */}
       <Button
         type="submit"
         variant="secondary"
         disabled={uploading}
         className="w-full"
       >
-        {uploading
-          ? `Mengupload... ${progress}%`
-          : `Upload ${type === "masuk" ? "Barang Masuk" : "Barang Keluar"}`}
+        {uploading ? `Mengupload... ${progress}%` : getButtonLabel()}
       </Button>
     </form>
   );

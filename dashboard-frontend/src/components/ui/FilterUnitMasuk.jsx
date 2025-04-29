@@ -3,10 +3,10 @@
 export default function FilterUnitMasuk({ value, onChange }) {
   const units = [
     "Semua Unit",
-    "BM 100",
     "BM 90",
+    "BM 100",
+    "Excavator",  // Barang Masuk bisa umum
     "Forklift",
-    "Excavator", // Umum, bukan 01/02
     "HCR 120D",
     "Tanpa Unit",
   ];

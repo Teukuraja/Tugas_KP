@@ -1,4 +1,3 @@
-// src/server.js
 const express = require('express');
 const multer = require('multer');
 const xlsx = require('xlsx');
@@ -12,7 +11,6 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
-// Setup Database
 const db = new sqlite3.Database('./data.db', (err) => {
   if (err) console.error('Database connection error:', err.message);
 });
@@ -52,18 +50,21 @@ const upload = multer({ dest: 'uploads/' });
 function normalizeUnit(unit) {
   if (!unit || unit.trim() === '' || unit.trim() === '-') return 'Tanpa Unit';
   const map = {
-    'BM 100': 'BM 100',
     'BM100': 'BM 100',
+    'BM 100': 'BM 100',
     'BROKK BM 100': 'BM 100',
     'BM 90': 'BM 90',
     'BROKK BM 90': 'BM 90',
     'Forklift 3T': 'Forklift',
     'Forklift 3 Ton': 'Forklift',
+    'Forklift': 'Forklift',
+    'forklift': 'Forklift',
+    'FORKLIFT': 'Forklift',
     'HCR 120D': 'HCR 120D',
-    'Breaker Excavator 02': 'Excavator 02',
+    'Excavator 01': 'Excavator 01',
+    'Excavator 02': 'Excavator 02',
   };
   const cleaned = unit.trim();
-  if (['Excavator', 'Excavator 01', 'Excavator 02'].includes(cleaned)) return cleaned;
   return map[cleaned] || cleaned;
 }
 
@@ -79,54 +80,56 @@ function convertExcelDate(excelDate) {
   return '';
 }
 
-// 🔐 Login Admin Super Simple
+function syncInventory(kode, nama, delta, satuan, unit) {
+  const today = new Date().toISOString().split("T")[0];
+  db.get(`SELECT * FROM inventory WHERE kode = ? AND unit = ?`, [kode, unit], (err, row) => {
+    if (err) return console.error("Sync Error:", err.message);
+    if (row) {
+      const newJumlah = Math.max(0, row.jumlah + delta);
+      db.run(`UPDATE inventory SET jumlah = ?, tanggal = ? WHERE id = ?`, [newJumlah, today, row.id]);
+    } else if (delta > 0) {
+      db.run(`INSERT INTO inventory (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`,
+        [today, kode, nama, delta, satuan, unit]);
+    }
+  });
+}
+
+// ===================== LOGIN =====================
 const ADMIN_USERNAME = "admin";
 const ADMIN_PASSWORD = "admin";
 
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
-  if (username !== ADMIN_USERNAME) return res.status(401).json({ success: false, message: "Username salah" });
-  if (password !== ADMIN_PASSWORD) return res.status(401).json({ success: false, message: "Password salah" });
+  if (username !== ADMIN_USERNAME || password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ success: false, message: "Login gagal" });
+  }
   res.json({ success: true });
 });
 
-// Upload Barang Masuk
-app.post('/upload-barang-masuk', upload.single('file'), (req, res) => {
-  const workbook = xlsx.readFile(req.file.path);
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const data = xlsx.utils.sheet_to_json(sheet);
-  const stmt = db.prepare(`INSERT INTO barang_masuk (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`);
-  db.serialize(() => {
-    data.forEach(item => {
-      const tanggal = convertExcelDate(item.Tanggal);
-      const unit = normalizeUnit(item.Unit);
-      stmt.run(tanggal, item.Kode, item['Nama Barang'], item.Jumlah, item.Satuan, unit);
+// ===================== CRUD BARANG MASUK =====================
+app.post('/api/barang-masuk', (req, res) => {
+  const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
+  db.run(`INSERT INTO barang_masuk (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`,
+    [tanggal, kode, nama, jumlah, satuan, unit],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      syncInventory(kode, nama, jumlah, satuan, unit);
+      res.json({ id: this.lastID });
     });
-  });
-  stmt.finalize();
-  fs.unlinkSync(req.file.path);
-  res.json({ message: 'Barang masuk berhasil diupload!' });
 });
 
-// Upload Barang Keluar
-app.post('/upload-barang-keluar', upload.single('file'), (req, res) => {
-  const workbook = xlsx.readFile(req.file.path);
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const data = xlsx.utils.sheet_to_json(sheet);
-  const stmt = db.prepare(`INSERT INTO barang_keluar (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`);
-  db.serialize(() => {
-    data.forEach(item => {
-      const tanggal = convertExcelDate(item.Tanggal);
-      const unit = normalizeUnit(item.Unit);
-      stmt.run(tanggal, item.Kode, item['Nama Barang'], item.Jumlah, item.Satuan, unit);
+app.delete('/api/barang-masuk/:id', (req, res) => {
+  const { id } = req.params;
+  db.get(`SELECT * FROM barang_masuk WHERE id = ?`, [id], (err, row) => {
+    if (!row) return res.status(404).json({ error: 'Data tidak ditemukan' });
+    db.run(`DELETE FROM barang_masuk WHERE id = ?`, [id], function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      syncInventory(row.kode, row.nama, -row.jumlah, row.satuan, row.unit);
+      res.json({ message: 'Barang masuk berhasil dihapus' });
     });
   });
-  stmt.finalize();
-  fs.unlinkSync(req.file.path);
-  res.json({ message: 'Barang keluar berhasil diupload!' });
 });
 
-// GET Barang Masuk
 app.get('/api/barang-masuk', (req, res) => {
   const unit = req.query.unit;
   let query = "SELECT * FROM barang_masuk";
@@ -141,7 +144,30 @@ app.get('/api/barang-masuk', (req, res) => {
   });
 });
 
-// GET Barang Keluar
+// ===================== CRUD BARANG KELUAR =====================
+app.post('/api/barang-keluar', (req, res) => {
+  const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
+  db.run(`INSERT INTO barang_keluar (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`,
+    [tanggal, kode, nama, jumlah, satuan, unit],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      syncInventory(kode, nama, -jumlah, satuan, unit);
+      res.json({ id: this.lastID });
+    });
+});
+
+app.delete('/api/barang-keluar/:id', (req, res) => {
+  const { id } = req.params;
+  db.get(`SELECT * FROM barang_keluar WHERE id = ?`, [id], (err, row) => {
+    if (!row) return res.status(404).json({ error: 'Data tidak ditemukan' });
+    db.run(`DELETE FROM barang_keluar WHERE id = ?`, [id], function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      syncInventory(row.kode, row.nama, row.jumlah, row.satuan, row.unit);
+      res.json({ message: 'Barang keluar berhasil dihapus' });
+    });
+  });
+});
+
 app.get('/api/barang-keluar', (req, res) => {
   const unit = req.query.unit;
   let query = "SELECT * FROM barang_keluar";
@@ -156,71 +182,7 @@ app.get('/api/barang-keluar', (req, res) => {
   });
 });
 
-// POST Barang Masuk
-app.post('/api/barang-masuk', (req, res) => {
-  const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
-  db.run(`INSERT INTO barang_masuk (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`,
-    [tanggal, kode, nama, jumlah, satuan, unit],
-    function (err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: this.lastID });
-    });
-});
-
-// PUT Barang Masuk
-app.put('/api/barang-masuk/:id', (req, res) => {
-  const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
-  const { id } = req.params;
-  db.run(`UPDATE barang_masuk SET tanggal=?, kode=?, nama=?, jumlah=?, satuan=?, unit=? WHERE id=?`,
-    [tanggal, kode, nama, jumlah, satuan, unit, id],
-    function (err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: 'Barang masuk berhasil diupdate' });
-    });
-});
-
-// DELETE Barang Masuk
-app.delete('/api/barang-masuk/:id', (req, res) => {
-  const { id } = req.params;
-  db.run(`DELETE FROM barang_masuk WHERE id=?`, [id], function (err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: 'Barang masuk berhasil dihapus' });
-  });
-});
-
-// POST Barang Keluar
-app.post('/api/barang-keluar', (req, res) => {
-  const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
-  db.run(`INSERT INTO barang_keluar (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`,
-    [tanggal, kode, nama, jumlah, satuan, unit],
-    function (err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: this.lastID });
-    });
-});
-
-// PUT Barang Keluar
-app.put('/api/barang-keluar/:id', (req, res) => {
-  const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
-  const { id } = req.params;
-  db.run(`UPDATE barang_keluar SET tanggal=?, kode=?, nama=?, jumlah=?, satuan=?, unit=? WHERE id=?`,
-    [tanggal, kode, nama, jumlah, satuan, unit, id],
-    function (err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: 'Barang keluar berhasil diupdate' });
-    });
-});
-
-// DELETE Barang Keluar
-app.delete('/api/barang-keluar/:id', (req, res) => {
-  const { id } = req.params;
-  db.run(`DELETE FROM barang_keluar WHERE id=?`, [id], function (err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: 'Barang keluar berhasil dihapus' });
-  });
-});
-
-// CRUD INVENTORY =======================
+// ===================== INVENTORY =====================
 app.get('/api/inventory', (req, res) => {
   const unit = req.query.unit;
   let query = "SELECT * FROM inventory";
@@ -235,50 +197,40 @@ app.get('/api/inventory', (req, res) => {
   });
 });
 
-app.post('/api/inventory', (req, res) => {
-  const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
-  db.run(`INSERT INTO inventory (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`,
-    [tanggal, kode, nama, jumlah, satuan, unit],
-    function (err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: this.lastID });
+// ===================== UPLOAD INVENTORY FILE =====================
+app.post('/upload-inventory', upload.single('file'), (req, res) => {
+  try {
+    const workbook = xlsx.readFile(req.file.path);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const data = xlsx.utils.sheet_to_json(sheet);
+    const stmt = db.prepare(`INSERT INTO inventory (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`);
+    db.serialize(() => {
+      data.forEach(item => {
+        const tanggal = item.Tanggal ? convertExcelDate(item.Tanggal) : new Date().toISOString().split('T')[0];
+        const kode = item.Kode || "";
+        const nama = item["Nama Barang"] || "";
+        const jumlah = item["Sisa Akhir"] || item.Jumlah || 0;
+        const satuan = item.Satuan || "";
+        const unit = normalizeUnit(item.Unit);
+        stmt.run(tanggal, kode, nama, jumlah, satuan, unit);
+      });
     });
+    stmt.finalize();
+    fs.unlinkSync(req.file.path);
+    res.json({ message: 'Inventory berhasil diupload!' });
+  } catch (err) {
+    console.error("Upload Inventory Error:", err);
+    res.status(500).json({ message: 'Gagal upload inventory' });
+  }
 });
 
-app.put('/api/inventory/:id', (req, res) => {
-  const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
-  const { id } = req.params;
-  db.run(`UPDATE inventory SET tanggal=?, kode=?, nama=?, jumlah=?, satuan=?, unit=? WHERE id=?`,
-    [tanggal, kode, nama, jumlah, satuan, unit, id],
-    function (err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ message: 'Inventory berhasil diupdate' });
-    });
-});
-
-app.delete('/api/inventory/:id', (req, res) => {
-  const { id } = req.params;
-  db.run(`DELETE FROM inventory WHERE id=?`, [id], function (err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: 'Inventory berhasil dihapus' });
-  });
-});
-
-// RESET SEMUA DATA
+// ===================== RESET SEMUA DATA =====================
 app.post('/reset-data', (req, res) => {
   db.serialize(() => {
     db.run('DELETE FROM barang_masuk');
     db.run('DELETE FROM barang_keluar');
     db.run('DELETE FROM inventory');
     res.json({ message: 'Semua data berhasil direset!' });
-  });
-});
-
-// GET semua unit unik dari barang keluar
-app.get('/api/unit-barang-keluar', (req, res) => {
-  db.all("SELECT DISTINCT unit FROM barang_keluar WHERE unit IS NOT NULL AND unit != ''", (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows.map(row => row.unit));
   });
 });
 

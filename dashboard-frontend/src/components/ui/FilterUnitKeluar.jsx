@@ -1,13 +1,12 @@
 // src/components/ui/FilterUnitKeluar.jsx
-
 export default function FilterUnitKeluar({ value, onChange }) {
   const units = [
     "Semua Unit",
-    "BM 100",
     "BM 90",
-    "Forklift",
+    "BM 100",
     "Excavator 01",
     "Excavator 02",
+    "Forklift",
     "HCR 120D",
     "Tanpa Unit",
   ];

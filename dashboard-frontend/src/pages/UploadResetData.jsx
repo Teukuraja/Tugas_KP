@@ -32,6 +32,7 @@ export default function UploadResetData() {
 
       {/* Upload Form Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Barang Masuk */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg space-y-4 transition-colors">
           <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">
             Upload Barang Masuk
@@ -39,11 +40,20 @@ export default function UploadResetData() {
           <UploadForm type="masuk" />
         </div>
 
+        {/* Barang Keluar */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg space-y-4 transition-colors">
           <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">
             Upload Barang Keluar
           </h2>
           <UploadForm type="keluar" />
+        </div>
+
+        {/* Inventory */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg space-y-4 transition-colors md:col-span-2">
+          <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300">
+            Upload Inventory
+          </h2>
+          <UploadForm type="inventory" /> {/* ✅ Tambahan ini */}
         </div>
       </div>
 
