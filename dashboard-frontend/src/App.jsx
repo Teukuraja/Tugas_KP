@@ -42,10 +42,17 @@ export default function App() {
       <Link
         to={to}
         onClick={closeSidebar}
+<<<<<<< HEAD
         className={`flex items-center gap-3 px-4 py-2 rounded-md transition font-medium ${
           isActive
             ? "bg-white text-blue-600 shadow font-semibold"
             : "text-gray-800 hover:bg-blue-100 dark:text-white"
+=======
+        className={`py-2 px-4 rounded-lg transition font-medium w-full text-left ${
+          isActive
+            ? "bg-[#1D3557] text-white shadow-md"
+            : "hover:bg-[#A8DADC] hover:text-white text-gray-300"
+>>>>>>> e1a74e589eac9bd289e164e79ab289c71f0179a1
         }`}
       >
         <Icon size={18} />
@@ -62,6 +69,7 @@ export default function App() {
     <div className={`${darkMode ? "dark" : ""} min-h-screen flex flex-col`}>
       <Toaster position="top-right" reverseOrder={false} />
 
+<<<<<<< HEAD
       {/* Header */}
       {location.pathname !== "/login" && (
         <header className="bg-blue-700 text-white px-6 py-4 flex items-center justify-between shadow relative z-10">
@@ -72,12 +80,32 @@ export default function App() {
             Dashboard Analitik
           </h1>
           <div className="absolute right-6 flex items-center gap-4">
+=======
+      {/* HEADER / TOPBAR */}
+      {location.pathname !== "/login" && (
+        <header className="bg-[#1D3557] text-white px-6 py-3 flex items-center justify-between shadow-md relative z-10">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="z-20 md:hidden"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+
+          <div className="flex items-center gap-3">
+            <img src={Logo} alt="Logo" className="w-10 h-10 object-contain" />
+            <h1 className="text-2xl font-bold hidden md:block">
+              {getPageTitle(location.pathname)}
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-4">
+>>>>>>> e1a74e589eac9bd289e164e79ab289c71f0179a1
             <button onClick={() => setDarkMode(!darkMode)}>
               {darkMode ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
             </button>
             <button
               onClick={handleLogout}
-              className="bg-red-500 hover:bg-red-600 text-white py-1 px-3 rounded-lg text-sm font-semibold"
+              className="bg-[#E63946] hover:bg-[#D62828] text-white py-1 px-3 rounded-lg text-sm font-semibold"
             >
               Logout
             </button>
@@ -85,14 +113,19 @@ export default function App() {
         </header>
       )}
 
+<<<<<<< HEAD
       {/* Overlay sidebar mobile */}
+=======
+      {/* SIDEBAR BACKDROP */}
+>>>>>>> e1a74e589eac9bd289e164e79ab289c71f0179a1
       {sidebarOpen && location.pathname !== "/login" && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-10 md:hidden"
-          onClick={closeSidebar}
+          onClick={() => setSidebarOpen(false)}
         />
       )}
 
+<<<<<<< HEAD
       <div className="flex flex-1 bg-white dark:bg-gray-900 transition-all">
         {/* Sidebar */}
         {location.pathname !== "/login" && (
@@ -171,6 +204,25 @@ export default function App() {
 
         {/* Main Content */}
         <main className="flex-1 p-6 overflow-y-auto relative transition-all duration-300">
+=======
+      {/* MAIN CONTENT */}
+      <div className="flex flex-1 bg-white dark:bg-[#121212] text-black dark:text-white transition-all">
+        {location.pathname !== "/login" && (
+          <aside
+            className={`bg-[#2B2D42] text-white w-64 p-6 flex flex-col items-start shadow-lg
+              fixed md:relative z-20 h-full md:h-auto transition-transform duration-300
+              ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
+          >
+            <nav className="flex flex-col gap-4 w-full">
+              {navItems.map((item) => (
+                <NavLink key={item.to} {...item} />
+              ))}
+            </nav>
+          </aside>
+        )}
+
+        <main className="flex-1 p-6 overflow-y-auto relative">
+>>>>>>> e1a74e589eac9bd289e164e79ab289c71f0179a1
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -192,7 +244,11 @@ export default function App() {
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route
                   path="*"
+<<<<<<< HEAD
                   element={<div className="text-center text-red-600 mt-10">404 - Halaman tidak ditemukan</div>}
+=======
+                  element={<div className="text-center text-[#E63946] mt-10">404 - Halaman tidak ditemukan</div>}
+>>>>>>> e1a74e589eac9bd289e164e79ab289c71f0179a1
                 />
               </Routes>
             </motion.div>
