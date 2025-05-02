@@ -169,7 +169,7 @@ app.post("/upload-inventory", upload.single("file"), (req, res) => {
 
     db.serialize(() => {
       data.forEach(item => {
-        const tanggal = convertExcelDate(item.Tanggal);
+        const tanggal = convertExcelDate(item.Tanggal) || new Date().toISOString().split("T")[0];
         const kode = item.Kode || autoKode("INV");
         const nama = item["Nama Barang"] || "";
         const alias = item.Alias || "";
