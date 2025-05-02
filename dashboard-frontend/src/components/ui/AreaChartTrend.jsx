@@ -24,7 +24,7 @@ export default function AreaChartTrend({ title, data = [] }) {
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={data}
-            margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
+            margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
           >
             <defs>
               <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
@@ -39,22 +39,38 @@ export default function AreaChartTrend({ title, data = [] }) {
               tick={{ fontSize: 12 }}
               tickLine={false}
               axisLine={false}
+              label={{
+                value: "Periode",
+                position: "insideBottom",
+                offset: -8,
+                fill: "#64748b",
+                fontSize: 12,
+              }}
             />
             <YAxis
               stroke="#94a3b8"
               tick={{ fontSize: 12 }}
               tickLine={false}
               axisLine={false}
+              label={{
+                value: "Jumlah Barang",
+                angle: -90,
+                position: "insideLeft",
+                fill: "#64748b",
+                fontSize: 12,
+                dy: 30,
+              }}
             />
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <Tooltip content={<CustomTooltipArea />} />
-
             <Area
               type="monotone"
               dataKey="total"
               stroke="#3182CE"
+              strokeWidth={2}
               fillOpacity={1}
               fill="url(#colorTotal)"
+              dot={{ r: 3, stroke: "#3182CE", strokeWidth: 1, fill: "white" }}
               activeDot={{ r: 6 }}
             />
           </AreaChart>

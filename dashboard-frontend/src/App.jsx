@@ -16,7 +16,7 @@ import BarangKeluar from "./pages/BarangKeluar";
 import DashboardRingkasan from "./pages/DashboardRingkasan";
 import UploadResetData from "./pages/UploadResetData";
 import Login from "./pages/Login";
-import InventoryData from "./pages/InventoryData"; // ✅ Tambahan
+import InventoryData from "./pages/InventoryData";
 import Logo from "./assets/logo.png";
 
 export default function App() {
@@ -31,7 +31,7 @@ export default function App() {
     { to: "/dashboard", label: "Dashboard" },
     { to: "/barang-masuk", label: "Barang Masuk" },
     { to: "/barang-keluar", label: "Barang Keluar" },
-    { to: "/inventory", label: "Inventory" }, // ✅ Tambahan
+    { to: "/inventory", label: "Inventory" },
     { to: "/upload-reset", label: "Upload & Reset Data" },
   ];
 
@@ -48,11 +48,11 @@ export default function App() {
       <Link
         to={to}
         onClick={closeSidebar}
-        className={py-2 px-4 rounded-lg transition font-medium w-full text-left ${
+        className={`py-2 px-4 rounded-lg transition font-medium w-full text-left ${
           isActive
             ? "bg-[#1D3557] text-white shadow-md"
             : "hover:bg-[#A8DADC] hover:text-white text-gray-300"
-        }}
+        }`}
       >
         {label}
       </Link>
@@ -75,10 +75,10 @@ export default function App() {
   }
 
   return (
-    <div className={${darkMode ? "dark" : ""} min-h-screen flex flex-col}>
+    <div className={`${darkMode ? "dark" : ""} min-h-screen flex flex-col`}>
       <Toaster position="top-right" reverseOrder={false} />
 
-      {/* HEADER / TOPBAR */}
+      {/* HEADER */}
       {location.pathname !== "/login" && (
         <header className="bg-[#1D3557] text-white px-6 py-3 flex items-center justify-between shadow-md relative z-10">
           <button
@@ -121,9 +121,9 @@ export default function App() {
       <div className="flex flex-1 bg-white dark:bg-[#121212] text-black dark:text-white transition-all">
         {location.pathname !== "/login" && (
           <aside
-            className={bg-[#2B2D42] text-white w-64 p-6 flex flex-col items-start shadow-lg
+            className={`bg-[#2B2D42] text-white w-64 p-6 flex flex-col items-start shadow-lg
               fixed md:relative z-20 h-full md:h-auto transition-transform duration-300
-              ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0}
+              ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
           >
             <nav className="flex flex-col gap-4 w-full">
               {navItems.map((item) => (
@@ -152,7 +152,11 @@ export default function App() {
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route
                   path="*"
-                  element={<div className="text-center text-[#E63946] mt-10">404 - Halaman tidak ditemukan</div>}
+                  element={
+                    <div className="text-center text-[#E63946] mt-10">
+                      404 - Halaman tidak ditemukan
+                    </div>
+                  }
                 />
               </Routes>
             </motion.div>
@@ -161,4 +165,4 @@ export default function App() {
       </div>
     </div>
   );
-} 
+}

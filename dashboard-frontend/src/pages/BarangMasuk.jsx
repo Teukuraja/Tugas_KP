@@ -1,4 +1,4 @@
-// BarangMasuk.jsx – Versi diperbaiki
+// BarangMasuk.jsx – Versi ditambah fitur autocomplete nama barang + pagination angka
 import { useEffect, useState } from "react";
 import FilterUnitMasuk from "../components/ui/FilterUnitMasuk";
 import TableBarang from "../components/TableBarang";
@@ -20,11 +20,29 @@ export default function BarangMasuk() {
   const [modalOpen, setModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [formData, setFormData] = useState({
-    tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: ""
-  });
+  const [formData, setFormData] = useState({ tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: "" });
   const [currentPage, setCurrentPage] = useState(1);
+  const [suggestions, setSuggestions] = useState([]);
   const itemsPerPage = 10;
+
+  const fetchSuggestions = async (nama) => {
+    if (!nama) return;
+    try {
+      const res = await fetch(`http://localhost:3001/api/inventory`);
+      const inventory = await res.json();
+      const match = inventory.find(item => item.nama.toLowerCase() === nama.toLowerCase() || (item.alias && item.alias.toLowerCase().includes(nama.toLowerCase())));
+      if (match) {
+        setFormData((prev) => ({
+          ...prev,
+          kode: match.kode,
+          satuan: match.satuan,
+          nama: match.nama
+        }));
+      }
+    } catch (err) {
+      console.error("Autocomplete error:", err);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -48,12 +66,10 @@ export default function BarangMasuk() {
     item.nama?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const currentItems = filteredData.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const indexOfLast = currentPage * itemsPerPage; // ✅ Diperbaiki
+  const indexOfLast = currentPage * itemsPerPage;
+  const indexOfFirst = indexOfLast - itemsPerPage;
+  const currentItems = filteredData.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
   const grafikData = () => {
     const result = {};
@@ -69,9 +85,7 @@ export default function BarangMasuk() {
     doc.text("Laporan Barang Masuk", 14, 10);
     autoTable(doc, {
       head: [["Tanggal", "Kode", "Nama", "Jumlah", "Satuan", "Unit"]],
-      body: filteredData.map((i) => [
-        i.tanggal, i.kode, i.nama, i.jumlah, i.satuan, i.unit
-      ]),
+      body: filteredData.map((i) => [i.tanggal, i.kode, i.nama, i.jumlah, i.satuan, i.unit]),
     });
     doc.save("Laporan_Barang_Masuk.pdf");
     toast.success("Export PDF berhasil!");
@@ -100,10 +114,14 @@ export default function BarangMasuk() {
     setIsSubmitting(true);
     const toastId = toast.loading(editId ? "Menyimpan perubahan..." : "Menyimpan data...");
     try {
+      const payload = {
+        ...formData,
+        unit: formData.unit.trim() === "" ? "Tanpa Unit" : formData.unit.trim()
+      };
       const res = await fetch(`http://localhost:3001/api/barang-masuk${editId ? `/${editId}` : ""}`, {
         method: editId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("Gagal menyimpan data");
       toast.success(editId ? "Barang berhasil diupdate!" : "Barang berhasil ditambahkan!", { id: toastId });
@@ -176,10 +194,18 @@ export default function BarangMasuk() {
       ) : (
         <>
           <TableBarang data={currentItems} onEdit={handleEdit} onDelete={handleDelete} />
-          <div className="flex justify-center items-center gap-4 mt-4">
-            <Button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} variant="secondary" disabled={currentPage === 1}>Previous</Button>
-            <span>Page {currentPage}</span>
-            <Button onClick={() => setCurrentPage((p) => (indexOfLast >= filteredData.length ? p : p + 1))} variant="secondary" disabled={indexOfLast >= filteredData.length}>Next</Button>
+          <div className="flex justify-center items-center gap-2 mt-4 flex-wrap">
+            {Array.from({ length: totalPages }, (_, index) => (
+              <button
+                key={index + 1}
+                onClick={() => setCurrentPage(index + 1)}
+                className={`px-3 py-1 rounded font-medium text-sm border border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white transition duration-200 ${
+                  currentPage === index + 1 ? "bg-blue-500 text-white" : ""
+                }`}
+              >
+                {index + 1}
+              </button>
+            ))}
           </div>
         </>
       )}
@@ -189,7 +215,25 @@ export default function BarangMasuk() {
           <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-lg relative animate-fade-in">
             <h2 className="text-xl font-bold mb-4">{editId ? "Edit Barang" : "Tambah Barang"}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {["tanggal", "kode", "nama", "jumlah", "satuan", "unit"].map((field, idx) => (
+              <input
+                type="text"
+                placeholder="Nama"
+                value={formData.nama}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, nama: value });
+                  fetchSuggestions(value);
+                }}
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                required
+              />
+              {[
+                "tanggal",
+                "kode",
+                "jumlah",
+                "satuan",
+                "unit",
+              ].map((field, idx) => (
                 <input
                   key={idx}
                   type={field === "tanggal" ? "date" : field === "jumlah" ? "number" : "text"}
@@ -197,7 +241,7 @@ export default function BarangMasuk() {
                   value={formData[field]}
                   onChange={(e) => setFormData({ ...formData, [field]: e.target.value })}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                  required
+                  required={field !== "unit"}
                 />
               ))}
               <div className="flex justify-end gap-2">

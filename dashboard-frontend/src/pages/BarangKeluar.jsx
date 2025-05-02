@@ -18,10 +18,7 @@ export default function BarangKeluar() {
   const [modalOpen, setModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [formData, setFormData] = useState({
-    tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: ""
-  });
-
+  const [formData, setFormData] = useState({ tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: "" });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -44,6 +41,24 @@ export default function BarangKeluar() {
     fetchData();
   }, [filterUnit]);
 
+  const fetchInventoryData = async (nama) => {
+    try {
+      const res = await fetch("http://localhost:3001/api/inventory");
+      const inventory = await res.json();
+      const match = inventory.find(item => item.nama.toLowerCase() === nama.toLowerCase() || (item.alias && item.alias.toLowerCase().includes(nama.toLowerCase())));
+      if (match) {
+        setFormData(prev => ({
+          ...prev,
+          kode: match.kode,
+          satuan: match.satuan,
+          nama: match.nama
+        }));
+      }
+    } catch (err) {
+      console.error("Autocomplete error:", err);
+    }
+  };
+
   const filteredData = data.filter((item) =>
     item.nama?.toLowerCase().includes(search.trim().toLowerCase())
   );
@@ -51,6 +66,7 @@ export default function BarangKeluar() {
   const indexOfLast = currentPage * itemsPerPage;
   const indexOfFirst = indexOfLast - itemsPerPage;
   const currentItems = filteredData.slice(indexOfFirst, indexOfLast);
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
   const grafikData = () => {
     const result = {};
@@ -66,9 +82,7 @@ export default function BarangKeluar() {
     doc.text("Laporan Barang Keluar", 14, 10);
     autoTable(doc, {
       head: [["Tanggal", "Kode", "Nama", "Jumlah", "Satuan", "Unit"]],
-      body: filteredData.map((i) => [
-        i.tanggal, i.kode, i.nama, i.jumlah, i.satuan, i.unit
-      ]),
+      body: filteredData.map((i) => [i.tanggal, i.kode, i.nama, i.jumlah, i.satuan, i.unit]),
     });
     doc.save("Laporan_Barang_Keluar.pdf");
     toast.success("Export PDF berhasil!");
@@ -93,12 +107,19 @@ export default function BarangKeluar() {
     setIsSubmitting(true);
     const toastId = toast.loading(editId ? "Menyimpan perubahan..." : "Menyimpan data...");
     try {
+      const payload = {
+        ...formData,
+        unit: formData.unit.trim() === "" ? "Tanpa Unit" : formData.unit.trim()
+      };
       const res = await fetch(`http://localhost:3001/api/barang-keluar${editId ? `/${editId}` : ""}`, {
         method: editId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Gagal menyimpan data");
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Gagal menyimpan data");
+      }
       toast.success(editId ? "Barang berhasil diupdate!" : "Barang berhasil ditambahkan!", { id: toastId });
       resetForm();
       setModalOpen(false);
@@ -166,10 +187,18 @@ export default function BarangKeluar() {
       ) : (
         <>
           <TableBarang data={currentItems} onEdit={handleEdit} onDelete={handleDelete} />
-          <div className="flex justify-center items-center gap-4 mt-4">
+          <div className="flex justify-center items-center gap-2 mt-4 flex-wrap">
             <Button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} variant="secondary" disabled={currentPage === 1}>Previous</Button>
-            <span>Page {currentPage}</span>
-            <Button onClick={() => setCurrentPage((p) => indexOfLast >= filteredData.length ? p : p + 1)} variant="secondary" disabled={indexOfLast >= filteredData.length}>Next</Button>
+            {[...Array(totalPages)].map((_, i) => (
+              <Button
+                key={i + 1}
+                onClick={() => setCurrentPage(i + 1)}
+                variant={currentPage === i + 1 ? "success" : "outline"}
+              >
+                {i + 1}
+              </Button>
+            ))}
+            <Button onClick={() => setCurrentPage((p) => (indexOfLast >= filteredData.length ? p : p + 1))} variant="secondary" disabled={indexOfLast >= filteredData.length}>Next</Button>
           </div>
         </>
       )}
@@ -181,7 +210,19 @@ export default function BarangKeluar() {
               {editId ? "Edit Barang" : "Tambah Barang"}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {["tanggal", "kode", "nama", "jumlah", "satuan", "unit"].map((field) => (
+              <input
+                type="text"
+                placeholder="Nama"
+                value={formData.nama}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, nama: value });
+                  fetchInventoryData(value);
+                }}
+                className="border p-2 w-full rounded-md dark:bg-gray-700 dark:text-white"
+                required
+              />
+              {["tanggal", "kode", "jumlah", "satuan", "unit"].map((field) => (
                 <input
                   key={field}
                   type={field === "tanggal" ? "date" : field === "jumlah" ? "number" : "text"}
@@ -189,7 +230,7 @@ export default function BarangKeluar() {
                   value={formData[field]}
                   onChange={(e) => setFormData({ ...formData, [field]: e.target.value })}
                   className="border p-2 w-full rounded-md dark:bg-gray-700 dark:text-white"
-                  required
+                  required={field !== "unit"}
                 />
               ))}
               <div className="flex justify-end gap-2">
