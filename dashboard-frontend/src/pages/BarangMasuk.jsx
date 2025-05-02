@@ -1,4 +1,4 @@
-// BarangMasuk.jsx – Versi ditambah fitur autocomplete nama barang + pagination angka
+// BarangMasuk.jsx – Versi UI pagination disamakan dengan BarangKeluar
 import { useEffect, useState } from "react";
 import FilterUnitMasuk from "../components/ui/FilterUnitMasuk";
 import TableBarang from "../components/TableBarang";
@@ -22,7 +22,6 @@ export default function BarangMasuk() {
   const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState({ tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: "" });
   const [currentPage, setCurrentPage] = useState(1);
-  const [suggestions, setSuggestions] = useState([]);
   const itemsPerPage = 10;
 
   const fetchSuggestions = async (nama) => {
@@ -195,25 +194,35 @@ export default function BarangMasuk() {
         <>
           <TableBarang data={currentItems} onEdit={handleEdit} onDelete={handleDelete} />
           <div className="flex justify-center items-center gap-2 mt-4 flex-wrap">
-            {Array.from({ length: totalPages }, (_, index) => (
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              className="px-4 py-1 rounded border bg-gray-200 text-black disabled:opacity-50"
+              disabled={currentPage === 1}
+            >Previous</button>
+            {Array.from({ length: totalPages }, (_, i) => (
               <button
-                key={index + 1}
-                onClick={() => setCurrentPage(index + 1)}
+                key={i + 1}
+                onClick={() => setCurrentPage(i + 1)}
                 className={`px-3 py-1 rounded font-medium text-sm border border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white transition duration-200 ${
-                  currentPage === index + 1 ? "bg-blue-500 text-white" : ""
+                  currentPage === i + 1 ? "bg-blue-500 text-white" : "bg-white"
                 }`}
               >
-                {index + 1}
+                {i + 1}
               </button>
             ))}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              className="px-4 py-1 rounded border bg-gray-200 text-black disabled:opacity-50"
+              disabled={indexOfLast >= filteredData.length}
+            >Next</button>
           </div>
         </>
       )}
 
       {modalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
           <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-lg relative animate-fade-in">
-            <h2 className="text-xl font-bold mb-4">{editId ? "Edit Barang" : "Tambah Barang"}</h2>
+            <h2 className="text-xl font-bold mb-4 dark:text-white">{editId ? "Edit Barang" : "Tambah Barang"}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <input
                 type="text"
@@ -227,13 +236,7 @@ export default function BarangMasuk() {
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
                 required
               />
-              {[
-                "tanggal",
-                "kode",
-                "jumlah",
-                "satuan",
-                "unit",
-              ].map((field, idx) => (
+              {["tanggal", "kode", "jumlah", "satuan", "unit"].map((field, idx) => (
                 <input
                   key={idx}
                   type={field === "tanggal" ? "date" : field === "jumlah" ? "number" : "text"}
@@ -246,9 +249,7 @@ export default function BarangMasuk() {
               ))}
               <div className="flex justify-end gap-2">
                 <Button variant="secondary" onClick={() => setModalOpen(false)} type="button">Batal</Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Menyimpan..." : "Simpan"}
-                </Button>
+                <Button type="submit" disabled={isSubmitting}>{isSubmitting ? "Menyimpan..." : "Simpan"}</Button>
               </div>
             </form>
             <button onClick={() => setModalOpen(false)} className="absolute top-3 right-3 text-gray-600 dark:text-gray-300">✖️</button>

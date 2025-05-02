@@ -188,17 +188,27 @@ export default function BarangKeluar() {
         <>
           <TableBarang data={currentItems} onEdit={handleEdit} onDelete={handleDelete} />
           <div className="flex justify-center items-center gap-2 mt-4 flex-wrap">
-            <Button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} variant="secondary" disabled={currentPage === 1}>Previous</Button>
-            {[...Array(totalPages)].map((_, i) => (
-              <Button
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              className="px-4 py-1 rounded border bg-gray-200 text-black disabled:opacity-50"
+              disabled={currentPage === 1}
+            >Previous</button>
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
                 key={i + 1}
                 onClick={() => setCurrentPage(i + 1)}
-                variant={currentPage === i + 1 ? "success" : "outline"}
+                className={`px-3 py-1 rounded font-medium text-sm border border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white transition duration-200 ${
+                  currentPage === i + 1 ? "bg-blue-500 text-white" : "bg-white"
+                }`}
               >
                 {i + 1}
-              </Button>
+              </button>
             ))}
-            <Button onClick={() => setCurrentPage((p) => (indexOfLast >= filteredData.length ? p : p + 1))} variant="secondary" disabled={indexOfLast >= filteredData.length}>Next</Button>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+              className="px-4 py-1 rounded border bg-gray-200 text-black disabled:opacity-50"
+              disabled={indexOfLast >= filteredData.length}
+            >Next</button>
           </div>
         </>
       )}
