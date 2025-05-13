@@ -11,7 +11,7 @@ import {
   Tooltip,
   Area,
 } from "recharts";
-import CustomTooltipArea from "./CustomTooltipArea";
+import CustomTooltipArea from "../ui/CustomTooltipArea";
 
 export default function AreaChartTrend({ title, data = [] }) {
   const hasData = Array.isArray(data) && data.length > 0;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import FilterUnitKeluar from "../components/ui/FilterUnitKeluar";
-import TableBarang from "../components/TableBarang";
-import ChartBarang from "../components/ui/ChartBarang";
+import FilterUnitKeluar from "../components/filters/FilterUnitKeluar";
+import TableBarang from "../components//tables/TableBarang";
+import ChartBarang from "../components/charts/ChartBarang";
 import { Card, CardHeader, CardContent } from "../components/ui/card";
 import Button from "../components/ui/Button";
 import jsPDF from "jspdf";
@@ -120,10 +120,19 @@ export default function BarangKeluar() {
         const err = await res.json();
         throw new Error(err.error || "Gagal menyimpan data");
       }
+      
       toast.success(editId ? "Barang berhasil diupdate!" : "Barang berhasil ditambahkan!", { id: toastId });
       resetForm();
       setModalOpen(false);
       fetchData();
+
+      // Sync Inventory
+await fetch(`http://localhost:3001/api/sync-inventory`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ kode: formData.kode, jumlah: -formData.jumlah, unit: formData.unit })
+});
+
     } catch (err) {
       toast.error(err.message, { id: toastId });
     } finally {
@@ -138,22 +147,26 @@ export default function BarangKeluar() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Yakin mau hapus barang ini?")) return;
-    const toastId = toast.loading("Menghapus barang...");
-    try {
-      const res = await fetch(`http://localhost:3001/api/barang-keluar/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Gagal hapus barang");
-      toast.success("Barang berhasil dihapus!", { id: toastId });
-      fetchData();
-    } catch (err) {
-      toast.error(err.message, { id: toastId });
+  if (!confirm("Yakin mau hapus barang ini?")) return;
+  const toastId = toast.loading("Menghapus barang...");
+  try {
+    const res = await fetch(`http://localhost:3001/api/barang-keluar/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || "Gagal hapus barang");
     }
-  };
+    toast.success("Barang berhasil dihapus!", { id: toastId });
+    fetchData();
+  } catch (err) {
+    console.error("Error saat menghapus barang:", err); // Debugging
+    toast.error(`Error: ${err.message}`, { id: toastId });
+  }
+};
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-center">Barang Keluar</h1>
-
+     <h1 className="text-xl font-semibold text-left">Data Barang Keluar</h1>
+     
       <div className="flex flex-col md:flex-row gap-4">
         <FilterUnitKeluar value={filterUnit} onChange={setFilterUnit} />
         <input

@@ -1,7 +1,3 @@
-// =========================
-// DashboardRingkasan.jsx (Final Tanpa Inventory Pie Chart)
-// =========================
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -9,8 +5,8 @@ import toast from "react-hot-toast";
 import dayjs from "dayjs";
 
 import SummaryCards from "../components/ui/SummaryCards";
-import ChartPie from "../components/ui/ChartPie";
-import AreaChartTrend from "../components/ui/AreaChartTrend";
+import ChartPie from "../components/charts/ChartPie";
+import AreaChartTrend from "../components/charts/AreaChartTrend";
 
 export default function DashboardRingkasan() {
   const navigate = useNavigate();
@@ -42,16 +38,8 @@ export default function DashboardRingkasan() {
         invRes.json(),
       ]);
 
-      const today = dayjs();
-      const cleanMasukData = masukData.filter((item) =>
-        dayjs(item.tanggal).isBefore(today.add(1, "day"))
-      );
-      const cleanKeluarData = keluarData.filter((item) =>
-        dayjs(item.tanggal).isBefore(today.add(1, "day"))
-      );
-
-      setBarangMasuk(cleanMasukData);
-      setBarangKeluar(cleanKeluarData);
+      setBarangMasuk(masukData);
+      setBarangKeluar(keluarData);
       setInventory(invData);
 
       toast.success("Data berhasil dimuat! 🚀");
@@ -67,34 +55,16 @@ export default function DashboardRingkasan() {
   const totalKeluar = barangKeluar.reduce((sum, item) => sum + item.jumlah, 0);
   const totalInventory = inventory.reduce((sum, item) => sum + item.jumlah, 0);
 
-  const normalizeUnit = (unit) => {
-    const map = {
-      "BM100": "BM 100",
-      "BM 100": "BM 100",
-      "BM 100 / HCR120D": "BM 100",
-      "HCR120D": "HCR 120D",
-      "HCR 120D": "HCR 120D",
-      "Excavator": "Excavator",
-      "Excavator 01": "Excavator 01",
-      "Excavator 02": "Excavator 02",
-      "Forklift": "Forklift",
-      "forklift": "Forklift",
-      "FORKLIFT": "Forklift",
-    };
-    return map[unit?.trim()] || unit?.trim() || "Tanpa Unit";
-  };
-
   const formatDataPie = (data) => {
     const result = {};
     data.forEach((item) => {
-      const unit = normalizeUnit(item.unit);
+      const unit = item.unit?.trim() || "Tanpa Unit";
       result[unit] = (result[unit] || 0) + item.jumlah;
     });
-    const total = Object.values(result).reduce((a, b) => a + b, 0);
     return Object.entries(result).map(([unit, value]) => ({
       name: unit,
       value,
-      percent: ((value / total) * 100).toFixed(1),
+      percent: ((value / totalMasuk) * 100).toFixed(1),
     }));
   };
 
@@ -113,10 +83,12 @@ export default function DashboardRingkasan() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-4"
-      >
-        Dashboard Gudang Sparepart
-      </motion.h1>
+        
+  className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-white mb-4 text-left"
+>
+  Dashboard Gudang Sparepart
+</motion.h1>
+
 
       <SummaryCards
         totalMasuk={totalMasuk}

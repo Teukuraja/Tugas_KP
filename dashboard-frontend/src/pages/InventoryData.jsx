@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import TableBarang from "../components/TableBarang";
+import TableBarang from "../components/tables/TableBarang";
 import Button from "../components/ui/Button";
-import FilterUnitMasuk from "../components/ui/FilterUnitMasuk";
+import FilterUnitMasuk from "../components/filters/FilterUnitRingkasan";
 import { toast } from "react-hot-toast";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -104,7 +104,7 @@ export default function InventoryData() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4">
-        <h1 className="text-2xl font-bold">Data Inventory</h1>
+        <h1 className="text-xl font-semibold text-left">Data Inventory</h1>
         <div className="flex gap-2">
           <Button onClick={exportPDF}>Export PDF</Button>
           <Button onClick={exportExcel} variant="secondary">Export Excel</Button>

@@ -4,15 +4,132 @@ const xlsx = require("xlsx");
 const cors = require("cors");
 const sqlite3 = require("sqlite3").verbose();
 const fs = require("fs");
-
 const app = express();
 const PORT = 3001;
+
 
 app.use(cors());
 app.use(express.json());
 
+
 const db = new sqlite3.Database("./data.db", (err) => {
   if (err) console.error("Database connection error:", err.message);
+});
+
+// Membuat tabel users jika belum ada
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE,
+    password TEXT
+  )`, (err) => {
+    if (err) {
+      console.error("Gagal membuat tabel users:", err.message);
+    } else {
+      console.log("Tabel users berhasil dibuat atau sudah ada.");
+    }
+  });
+
+  // Menambahkan user admin jika belum ada
+  db.get("SELECT * FROM users WHERE username = 'admin'", (err, row) => {
+    if (err) {
+      console.error("Gagal memeriksa user admin:", err.message);
+    } else if (!row) {
+      db.run("INSERT INTO users (username, password) VALUES (?, ?)", ['admin', 'admin'], (err) => {
+        if (err) {
+          console.error("Gagal menambahkan user admin:", err.message);
+        } else {
+          console.log("User admin berhasil ditambahkan.");
+        }
+      });
+    }
+  });
+});
+
+
+// Hapus Barang Masuk
+app.delete("/api/barang-masuk/:id", (req, res) => {
+  const { id } = req.params;
+
+  // Ambil data barang masuk sebelum dihapus
+  db.get("SELECT kode, nama, jumlah, satuan, unit FROM barang_masuk WHERE id = ?", [id], (err, row) => {
+    if (err) {
+      console.error("Error saat mengambil barang masuk sebelum hapus:", err.message);
+      return res.status(500).json({ error: "Gagal mengambil data barang masuk" });
+    }
+
+    if (!row) {
+      return res.status(404).json({ error: "Barang masuk tidak ditemukan" });
+    }
+
+    // Hapus semua barang keluar terkait sebelum menghapus barang masuk
+    db.run("DELETE FROM barang_keluar WHERE kode = ? AND unit = ?", [row.kode, row.unit], function (err) {
+      if (err) {
+        console.error("Error saat menghapus barang keluar terkait:", err.message);
+      }
+    });
+
+    // Hapus barang masuk
+    db.run("DELETE FROM barang_masuk WHERE id = ?", [id], function (err) {
+      if (err) {
+        console.error("Error saat menghapus barang masuk:", err.message);
+        return res.status(500).json({ error: "Gagal menghapus barang masuk" });
+      }
+      
+      
+
+
+
+
+
+
+      // Edit Barang Masuk
+app.put("/api/barang-masuk/:id", (req, res) => {
+  const { id } = req.params;
+  const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
+
+  // Ambil data barang masuk sebelum diupdate
+  db.get("SELECT kode, nama, jumlah, satuan, unit FROM barang_masuk WHERE id = ?", [id], (err, oldRow) => {
+    if (err) {
+      console.error("Error saat mengambil data barang masuk sebelum update:", err.message);
+      return res.status(500).json({ error: "Gagal mengambil data barang masuk" });
+    }
+
+    if (!oldRow) {
+      return res.status(404).json({ error: "Barang masuk tidak ditemukan" });
+    }
+
+    // Hitung delta jumlah untuk sinkronisasi inventory
+    const deltaJumlah = jumlah - oldRow.jumlah;
+
+    // Update barang masuk
+    db.run(`UPDATE barang_masuk SET tanggal = ?, kode = ?, nama = ?, jumlah = ?, satuan = ?, unit = ? WHERE id = ?`,
+      [tanggal, kode, nama, jumlah, satuan, unit, id], function (err) {
+        if (err) {
+          console.error("Error saat mengupdate barang masuk:", err.message);
+          return res.status(500).json({ error: "Gagal mengupdate barang masuk" });
+        }
+
+        // Sinkronisasi inventory: sesuaikan jumlah berdasarkan perubahan
+        syncInventory(kode, nama, deltaJumlah, satuan, unit);
+
+        console.log(`Barang masuk dengan ID ${id} berhasil diupdate`);
+        res.json({ message: "Barang masuk berhasil diupdate" });
+      }
+    );
+  });
+});
+
+
+
+
+      // Sinkronisasi inventory: kurangi jumlah barang di inventory
+      syncInventory(row.kode, row.nama, -row.jumlah, row.satuan, row.unit);
+
+      console.log(`Barang masuk dengan ID ${id} berhasil dihapus beserta barang keluar terkait`);
+      res.json({ message: "Barang masuk dan barang keluar terkait berhasil dihapus" });
+    });
+  });
 });
 
 // === TABEL ===
@@ -64,23 +181,42 @@ function syncInventory(kode, nama, delta, satuan, unit) {
   const today = new Date().toISOString().split("T")[0];
   db.get(`SELECT * FROM inventory WHERE kode = ? AND unit = ?`, [kode, unit], (err, row) => {
     if (row) {
-      const newJumlah = Math.max(0, row.jumlah + delta);
-      db.run(`UPDATE inventory SET jumlah = ?, tanggal = ? WHERE id = ?`, [newJumlah, today, row.id]);
+      const newJumlah = row.jumlah + delta;
+      if (newJumlah > 0) {
+        db.run(`UPDATE inventory SET jumlah = ?, tanggal = ? WHERE id = ?`, [newJumlah, today, row.id], (err) => {
+          if (err) console.error("Error mengupdate inventory:", err.message);
+        });
+      } else {
+        db.run(`DELETE FROM inventory WHERE id = ?`, [row.id], (err) => {
+          if (err) console.error("Error menghapus dari inventory:", err.message);
+          else console.log(`Barang dengan kode ${kode} berhasil dihapus dari inventory`);
+        });
+      }
     } else if (delta > 0) {
       db.run(`INSERT INTO inventory (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`,
-        [today, kode, nama, delta, satuan, unit]);
+        [today, kode, nama, delta, satuan, unit], (err) => {
+          if (err) console.error("Error menambah ke inventory:", err.message);
+          else console.log(`Barang dengan kode ${kode} berhasil ditambahkan ke inventory`);
+        });
     }
   });
 }
 
+
 // ========== LOGIN ==========
+// API Login Sederhana (tanpa bcrypt)
 app.post("/api/login", (req, res) => {
   const { username, password } = req.body;
-  if (username !== "admin" || password !== "admin") {
-    return res.status(401).json({ success: false, message: "Login gagal" });
+
+  // Login langsung tanpa hashing
+  if (username === "admin" && password === "admin") {
+    res.json({ success: true, message: "Login berhasil" });
+  } else {
+    res.status(401).json({ success: false, message: "Username atau password salah" });
   }
-  res.json({ success: true });
 });
+
+
 
 // ========== API ==========
 app.get("/api/barang-masuk", (req, res) => {
@@ -97,16 +233,51 @@ app.get("/api/barang-masuk", (req, res) => {
   });
 });
 
+// Tambah Barang Masuk
 app.post("/api/barang-masuk", (req, res) => {
   const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
   const finalUnit = normalizeUnit(unit);
-  db.run(`INSERT INTO barang_masuk (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`,
-    [tanggal, kode, nama, jumlah, satuan, finalUnit], function (err) {
-      if (err) return res.status(500).json({ error: err.message });
-      syncInventory(kode, nama, jumlah, satuan, finalUnit);
-      res.json({ id: this.lastID });
-    });
+
+  // Cek apakah barang sudah ada di inventory sebelum ditambahkan ke barang masuk
+  db.get("SELECT * FROM inventory WHERE kode = ? AND unit = ?", [kode, finalUnit], (err, inventoryRow) => {
+    if (err) {
+      console.error("Error saat mengecek inventory:", err.message);
+      return res.status(500).json({ error: "Gagal mengecek inventory" });
+    }
+
+    let newJumlah = parseInt(jumlah); // Pastikan jumlah adalah number
+
+    // Kalau barangnya sudah ada, tambahkan jumlahnya (dengan konversi tipe data)
+    if (inventoryRow) {
+      const existingJumlah = parseInt(inventoryRow.jumlah); // Konversi jumlah dari database menjadi number
+      newJumlah += existingJumlah; // Penjumlahan angka
+      db.run(`UPDATE inventory SET jumlah = ?, tanggal = ? WHERE id = ?`, 
+        [newJumlah, tanggal, inventoryRow.id], (err) => {
+          if (err) console.error("Error mengupdate jumlah di inventory:", err.message);
+      });
+      console.log(`Barang masuk: ${nama} (kode: ${kode}) - Jumlah ditambah di inventory.`);
+    } else {
+      // Kalau barang belum ada, tambahkan barang baru ke inventory
+      db.run(`INSERT INTO inventory (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`,
+        [tanggal, kode, nama, newJumlah, satuan, finalUnit], (err) => {
+          if (err) console.error("Error menambah barang ke inventory:", err.message);
+          else console.log(`Barang masuk: ${nama} (kode: ${kode}) - Barang baru ditambahkan ke inventory.`);
+      });
+    }
+
+    // Tambahkan ke tabel barang masuk setelah memproses inventory
+    db.run(`INSERT INTO barang_masuk (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`,
+      [tanggal, kode, nama, jumlah, satuan, finalUnit], function (err) {
+        if (err) {
+          console.error("Error saat menambah barang masuk:", err.message);
+          return res.status(500).json({ error: "Gagal menambah barang masuk" });
+        }
+        console.log(`Barang masuk dengan kode ${kode} berhasil ditambahkan`);
+        res.json({ id: this.lastID });
+      });
+  });
 });
+
 
 app.get("/api/barang-keluar", (req, res) => {
   const unit = req.query.unit;
@@ -121,16 +292,140 @@ app.get("/api/barang-keluar", (req, res) => {
     res.json(rows);
   });
 });
+// Edit Barang Keluar
+app.put("/api/barang-keluar/:id", (req, res) => {
+  const { id } = req.params;
+  const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
 
+  // Ambil data barang keluar sebelum diupdate
+  db.get("SELECT kode, nama, jumlah, satuan, unit FROM barang_keluar WHERE id = ?", [id], (err, oldRow) => {
+    if (err) {
+      console.error("Error saat mengambil data barang keluar sebelum update:", err.message);
+      return res.status(500).json({ error: "Gagal mengambil data barang keluar" });
+    }
+
+    if (!oldRow) {
+      return res.status(404).json({ error: "Barang keluar tidak ditemukan" });
+    }
+
+    // Hitung delta jumlah untuk sinkronisasi inventory
+    const deltaJumlah = jumlah - oldRow.jumlah;
+
+    // Update barang keluar
+    db.run(`UPDATE barang_keluar SET tanggal = ?, kode = ?, nama = ?, jumlah = ?, satuan = ?, unit = ? WHERE id = ?`,
+      [tanggal, kode, nama, jumlah, satuan, unit, id], function (err) {
+        if (err) {
+          console.error("Error saat mengupdate barang keluar:", err.message);
+          return res.status(500).json({ error: "Gagal mengupdate barang keluar" });
+        }
+
+        // Sinkronisasi inventory: sesuaikan jumlah berdasarkan perubahan
+        syncInventory(kode, nama, deltaJumlah, satuan, unit);
+
+        console.log(`Barang keluar dengan ID ${id} berhasil diupdate`);
+        res.json({ message: "Barang keluar berhasil diupdate" });
+      }
+    );
+  });
+});
+
+
+// Hapus Barang Keluar
+app.delete("/api/barang-keluar/:id", (req, res) => {
+  const { id } = req.params;
+
+  // Ambil data barang keluar sebelum dihapus
+ db.get("SELECT kode, nama, jumlah, satuan, unit FROM barang_keluar WHERE id = ?", [id], (err, row) => {
+    if (err) {
+      console.error("Error saat mengambil barang keluar sebelum hapus:", err.message);
+      return res.status(500).json({ error: "Gagal mengambil data barang keluar" });
+    }
+
+    if (!row) {
+      return res.status(404).json({ error: "Barang keluar tidak ditemukan" });
+    }
+
+    // Hapus barang keluar
+    db.run("DELETE FROM barang_keluar WHERE id = ?", [id], function (err) {
+      if (err) {
+        console.error("Error saat menghapus barang keluar:", err.message);
+        return res.status(500).json({ error: "Gagal menghapus barang keluar" });
+      }
+
+      // Sinkronisasi inventory: tambahkan kembali jumlah ke inventory
+      syncInventory(row.kode, row.nama, row.jumlah, row.satuan, row.unit);
+
+      console.log(`Barang keluar dengan ID ${id} berhasil dihapus`);
+      res.json({ message: "Barang keluar berhasil dihapus" });
+    });
+  });
+});
+
+
+// Tambah Barang Keluar
 app.post("/api/barang-keluar", (req, res) => {
   const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
   const finalUnit = normalizeUnit(unit);
+
+  // Tambahkan ke tabel barang keluar
   db.run(`INSERT INTO barang_keluar (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`,
     [tanggal, kode, nama, jumlah, satuan, finalUnit], function (err) {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: this.lastID });
+      if (err) {
+        console.error("Error saat menambah barang keluar:", err.message);
+        return res.status(500).json({ error: "Gagal menambah barang keluar" });
+      }
+
+      // Cek apakah barang ada di inventory
+      db.get("SELECT * FROM inventory WHERE kode = ? AND unit = ?", [kode, finalUnit], (err, inventoryRow) => {
+        if (err) {
+          console.error("Error saat mengecek inventory:", err.message);
+          return res.status(500).json({ error: "Gagal mengecek inventory" });
+        }
+
+        // Cek apakah barang ada di barang masuk
+        db.get("SELECT * FROM barang_masuk WHERE kode = ? AND unit = ?", [kode, finalUnit], (err, masukRow) => {
+          if (err) {
+            console.error("Error saat mengecek barang masuk:", err.message);
+            return res.status(500).json({ error: "Gagal mengecek barang masuk" });
+          }
+
+          // Kalau ada di inventory, kurangi jumlahnya
+          if (inventoryRow) {
+            const newJumlahInventory = inventoryRow.jumlah - jumlah;
+            if (newJumlahInventory > 0) {
+              db.run(`UPDATE inventory SET jumlah = ? WHERE id = ?`, [newJumlahInventory, inventoryRow.id], (err) => {
+                if (err) console.error("Error mengurangi barang di inventory:", err.message);
+              });
+            } else {
+              db.run(`DELETE FROM inventory WHERE id = ?`, [inventoryRow.id], (err) => {
+                if (err) console.error("Error menghapus dari inventory:", err.message);
+              });
+            }
+          }
+
+          // Kalau ada di barang masuk, kurangi jumlahnya juga
+          if (masukRow) {
+            const newJumlahMasuk = masukRow.jumlah - jumlah;
+            if (newJumlahMasuk > 0) {
+              db.run(`UPDATE barang_masuk SET jumlah = ? WHERE id = ?`, [newJumlahMasuk, masukRow.id], (err) => {
+                if (err) console.error("Error mengurangi barang di barang masuk:", err.message);
+              });
+            } else {
+              db.run(`DELETE FROM barang_masuk WHERE id = ?`, [masukRow.id], (err) => {
+                if (err) console.error("Error menghapus dari barang masuk:", err.message);
+              });
+            }
+          }
+
+          console.log(`Barang keluar dengan kode ${kode} berhasil ditambahkan`);
+          res.json({ id: this.lastID });
+        });
+      });
     });
 });
+
+
+
 
 app.get("/api/inventory", (req, res) => {
   const unit = req.query.unit;
@@ -145,6 +440,34 @@ app.get("/api/inventory", (req, res) => {
     res.json(rows);
   });
 });
+// Hapus Barang dari Inventory
+app.delete("/api/inventory/:id", (req, res) => {
+  const { id } = req.params;
+
+  // Ambil data inventory sebelum dihapus
+  db.get("SELECT kode, nama, jumlah, satuan, unit FROM inventory WHERE id = ?", [id], (err, row) => {
+    if (err) {
+      console.error("Error saat mengambil barang inventory sebelum hapus:", err.message);
+      return res.status(500).json({ error: "Gagal mengambil data inventory" });
+    }
+
+    if (!row) {
+      return res.status(404).json({ error: "Barang tidak ditemukan di inventory" });
+    }
+
+    // Hapus barang dari inventory
+    db.run("DELETE FROM inventory WHERE id = ?", [id], function (err) {
+      if (err) {
+        console.error("Error saat menghapus barang dari inventory:", err.message);
+        return res.status(500).json({ error: "Gagal menghapus barang dari inventory" });
+      }
+
+      console.log(`Barang dengan kode ${row.kode} berhasil dihapus dari inventory`);
+      res.json({ message: "Barang berhasil dihapus dari inventory" });
+    });
+  });
+});
+
 
 app.post("/reset-data", (req, res) => {
   db.serialize(() => {
@@ -251,5 +574,5 @@ app.post("/upload-barang-keluar", upload.single("file"), (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ Server ready di http://localhost:${PORT}`);
+  console.log(`✅ Server jalan di http://localhost:${PORT}`);
 });

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import UploadForm from "../components/UploadForm";
+import UploadForm from "../components/forms/UploadForm";
 import Button from "../components/ui/Button";
 import { toast } from "react-hot-toast";
 import axios from "axios";

@@ -1,8 +1,8 @@
 // BarangMasuk.jsx – Versi UI pagination disamakan dengan BarangKeluar
 import { useEffect, useState } from "react";
-import FilterUnitMasuk from "../components/ui/FilterUnitMasuk";
-import TableBarang from "../components/TableBarang";
-import ChartBarang from "../components/ui/ChartBarang";
+import FilterUnitMasuk from "../components/filters/FilterUnitKeluar";
+import TableBarang from "../components/tables/TableBarang";
+import ChartBarang from "../components/charts/ChartBarang";
 import { Card, CardHeader, CardContent } from "../components/ui/card";
 import Button from "../components/ui/Button";
 import jsPDF from "jspdf";
@@ -23,6 +23,24 @@ export default function BarangMasuk() {
   const [formData, setFormData] = useState({ tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: "" });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+// Fungsi Autocomplete Nama Barang dari Inventory
+const fetchInventoryData = async (nama) => {
+  try {
+    const res = await fetch("http://localhost:3001/api/inventory");
+    const inventory = await res.json();
+    const match = inventory.find(item => item.nama.toLowerCase() === nama.toLowerCase());
+    if (match) {
+      setFormData(prev => ({
+        ...prev,
+        kode: match.kode,
+        satuan: match.satuan,
+        unit: match.unit
+      }));
+    }
+  } catch (err) {
+    console.error("Autocomplete error:", err);
+  }
+};
 
   const fetchSuggestions = async (nama) => {
     if (!nama) return;
@@ -156,7 +174,7 @@ export default function BarangMasuk() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-center">Barang Masuk</h1>
+      <h1 className="text-xl font-semibold text-left">Data Barang Masuk</h1>
 
       <div className="flex flex-col md:flex-row gap-4">
         <FilterUnitMasuk value={filterUnit} onChange={setFilterUnit} />
@@ -232,6 +250,7 @@ export default function BarangMasuk() {
                   const value = e.target.value;
                   setFormData({ ...formData, nama: value });
                   fetchSuggestions(value);
+                  
                 }}
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none"
                 required

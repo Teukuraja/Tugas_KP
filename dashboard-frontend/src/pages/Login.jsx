@@ -7,6 +7,7 @@ import Logo from "../assets/logo.png";
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -24,14 +25,20 @@ export default function Login() {
       const data = await response.json();
 
       if (data.success) {
-        localStorage.setItem("isLoggedIn", "true");
+        if (rememberMe) {
+          localStorage.setItem("isLoggedIn", "true");
+        } else {
+          sessionStorage.setItem("isLoggedIn", "true");
+        }
         toast.success("Login berhasil! 🚀");
         navigate("/dashboard");
       } else {
         setError(data.message);
+        toast.error("Username atau password salah!");
       }
     } catch (error) {
       setError("Login gagal, server tidak merespon!");
+      toast.error("Gagal terhubung ke server!");
     }
   };
 
@@ -39,9 +46,7 @@ export default function Login() {
     <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-400 via-blue-500 to-blue-700">
       <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 flex flex-col items-center animate-fade-in">
 
-        {/* Logo */}
         <img src={Logo} alt="Logo Perusahaan" className="w-24 h-24 mb-6 object-contain" />
-
         <h1 className="text-3xl font-bold text-center mb-2 dark:text-white">Login Admin</h1>
         <p className="text-center text-gray-500 dark:text-gray-400 mb-6 text-sm">Selamat datang kembali! 👋</p>
 
@@ -58,7 +63,7 @@ export default function Login() {
             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none dark:bg-gray-700 dark:text-white"
             required
           />
-
+          
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
@@ -75,6 +80,16 @@ export default function Login() {
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              id="rememberMe"
+            />
+            <label htmlFor="rememberMe" className="text-gray-500 dark:text-gray-400">Ingat Saya</label>
           </div>
 
           <button

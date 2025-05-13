@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { UploadCloud, XCircle } from "lucide-react";
-import Button from "./ui/Button";
+import Button from "../ui/Button";
 
 export default function UploadForm({ type }) {
   const [file, setFile] = useState(null);
