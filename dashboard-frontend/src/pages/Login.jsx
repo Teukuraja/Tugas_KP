@@ -12,35 +12,38 @@ export default function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+ const handleLogin = async (e) => {
+  e.preventDefault();
 
-    try {
-      const response = await fetch("http://localhost:3001/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
+  try {
+    const response = await fetch("http://localhost:3001/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (data.success) {
-        if (rememberMe) {
-          localStorage.setItem("isLoggedIn", "true");
-        } else {
-          sessionStorage.setItem("isLoggedIn", "true");
-        }
-        toast.success("Login berhasil! 🚀");
-        navigate("/dashboard");
+    if (data.success) {
+      if (rememberMe) {
+        localStorage.setItem("isLoggedIn", "true");
       } else {
-        setError(data.message);
-        toast.error("Username atau password salah!");
+        sessionStorage.setItem("isLoggedIn", "true");
       }
-    } catch (error) {
-      setError("Login gagal, server tidak merespon!");
-      toast.error("Gagal terhubung ke server!");
+
+      toast.success("Login berhasil! 🚀");
+
+      // Tambahkan jeda 100ms agar penyimpanan selesai sebelum navigate
+      setTimeout(() => navigate("/dashboard"), 100);
+    } else {
+      setError(data.message);
+      toast.error("Username atau password salah!");
     }
-  };
+  } catch (error) {
+    setError("Login gagal, server tidak merespon!");
+    toast.error("Gagal terhubung ke server!");
+  }
+};
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-400 via-blue-500 to-blue-700">

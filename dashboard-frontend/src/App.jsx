@@ -25,7 +25,9 @@ export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+ const isLoggedIn =
+  localStorage.getItem("isLoggedIn") === "true" ||
+  sessionStorage.getItem("isLoggedIn") === "true";
 
   const navItems = [
     { to: "/dashboard", label: "Dashboard" },

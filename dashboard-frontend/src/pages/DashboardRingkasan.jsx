@@ -15,14 +15,15 @@ export default function DashboardRingkasan() {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isLoggedIn");
-    if (!isLoggedIn) {
-      navigate("/login");
-      return;
-    }
-    fetchData();
-  }, [navigate]);
+ useEffect(() => {
+  const isLoggedIn = localStorage.getItem("isLoggedIn") || sessionStorage.getItem("isLoggedIn");
+  if (!isLoggedIn) {
+    navigate("/login");
+    return;
+  }
+  fetchData();
+}, [navigate]);
+
 
   const fetchData = async () => {
     try {
