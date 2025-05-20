@@ -7,14 +7,22 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { useLocation } from "react-router-dom";
+import Modal from "../components/ui/Modal";
+import EditInventoryForm from "../components/forms/EditInventoryForm";
+import { useNavigate } from "react-router-dom";
 
 export default function InventoryData() {
   const [data, setData] = useState([]);
   const [search, setSearch] = useState("");
   const [filterUnit, setFilterUnit] = useState("Semua Unit");
   const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const filterLowStock = params.get("filter") === "lowstock";
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const navigate = useNavigate();
 
   const fetchInventory = async () => {
     try {
@@ -57,54 +65,74 @@ export default function InventoryData() {
   const filteredData = enhancedData.filter((item) => {
     const matchNama = item.nama?.toLowerCase().includes(search.toLowerCase());
     const matchUnit = filterUnit === "Semua Unit" || item.unit === filterUnit;
-    return matchNama && matchUnit;
+    const matchLowStock = !filterLowStock || item.jumlah <= 2;
+    return matchNama && matchUnit && matchLowStock;
   });
 
-  const indexOfLast = currentPage * itemsPerPage;
-  const indexOfFirst = indexOfLast - itemsPerPage;
-  const currentItems = filteredData.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
   const exportPDF = () => {
-    const doc = new jsPDF();
-    doc.text("Laporan Data Inventory", 14, 10);
-    autoTable(doc, {
-      head: [["Tanggal", "Kode", "Nama", "Jumlah", "Satuan", "Unit"]],
-      body: filteredData.map((item) => [
-        item.tanggal,
-        item.kode,
-        item.nama,
-        item.jumlah,
-        item.satuan,
-        item.unit,
-      ]),
-    });
-    doc.save("Laporan_Inventory.pdf");
-    toast.success("Export PDF berhasil!");
-  };
+  const doc = new jsPDF();
+
+  if (!filterLowStock) {
+    doc.text("Laporan Data Inventory", 14, 10); // hanya tampil jika bukan stok rendah
+  }
+
+  autoTable(doc, {
+    startY: filterLowStock ? 10 : 20, // supaya tabel tidak bertabrakan
+    head: [["Tanggal", "Kode", "Nama", "Jumlah", "Satuan", "Unit"]],
+    body: filteredData.map((item) => [
+      item.tanggal,
+      item.kode,
+      item.nama,
+      item.jumlah,
+      item.satuan,
+      item.unit,
+    ]),
+  });
+
+  doc.save(filterLowStock ? "Stok_Rendah.pdf" : "Laporan_Inventory.pdf");
+  toast.success("Export PDF berhasil!");
+};
 
   const exportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(
-      filteredData.map((item) => ({
-        Tanggal: item.tanggal,
-        Kode: item.kode,
-        Nama: item.nama,
-        Jumlah: item.jumlah,
-        Satuan: item.satuan,
-        Unit: item.unit,
-      }))
-    );
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Inventory");
-    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    saveAs(new Blob([buffer], { type: "application/octet-stream" }), "Laporan_Inventory.xlsx");
-    toast.success("Export Excel berhasil!");
+  const ws = XLSX.utils.json_to_sheet(
+    filteredData.map((item) => ({
+      Tanggal: item.tanggal,
+      Kode: item.kode,
+      Nama: item.nama,
+      Jumlah: item.jumlah,
+      Satuan: item.satuan,
+      Unit: item.unit,
+    }))
+  );
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, filterLowStock ? "Stok Rendah" : "Inventory");
+
+  const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+  saveAs(
+    new Blob([buffer], { type: "application/octet-stream" }),
+    filterLowStock ? "Stok_Rendah.xlsx" : "Laporan_Inventory.xlsx"
+  );
+
+  toast.success("Export Excel berhasil!");
+};
+
+  const handleEdit = (item) => {
+    setSelectedItem(item);
+    setModalOpen(true);
   };
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4">
-        <h1 className="text-xl font-semibold text-left">Data Inventory</h1>
+        <div className="flex gap-2 items-center">
+          {filterLowStock && (
+            <Button onClick={() => navigate("/inventory")} variant="secondary">
+              ← Kembali
+            </Button>
+          )}
+          <h1 className="text-xl font-semibold text-left">Data Inventory</h1>
+        </div>
         <div className="flex gap-2">
           <Button onClick={exportPDF}>Export PDF</Button>
           <Button onClick={exportExcel} variant="secondary">Export Excel</Button>
@@ -126,35 +154,25 @@ export default function InventoryData() {
         <p className="text-gray-600">Loading data...</p>
       ) : (
         <>
-          <TableBarang data={currentItems} onDelete={handleDelete} onEdit={() => {}} />
+          {filterLowStock && (
+            <p className="text-sm text-red-600 font-medium mb-2 mt-2">
+              Menampilkan hanya barang dengan stok rendah (≤ 3)
+            </p>
+          )}
 
-          <div className="flex justify-center items-center gap-2 mt-4 flex-wrap">
-            <Button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              variant="secondary"
-              disabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`px-3 py-1 rounded-md text-sm font-medium border transition-all duration-200 hover:bg-blue-100 dark:hover:bg-gray-700 ${
-                  currentPage === page ? "bg-blue-500 text-white" : "text-blue-600 border-blue-200"
-                }`}
-              >
-                {page}
-              </button>
-            ))}
-            <Button
-              onClick={() => setCurrentPage((p) => (indexOfLast >= filteredData.length ? p : p + 1))}
-              variant="secondary"
-              disabled={indexOfLast >= filteredData.length}
-            >
-              Next
-            </Button>
+          <div className="max-h-[600px] overflow-y-auto rounded-xl">
+            <TableBarang data={filteredData} onDelete={handleDelete} onEdit={handleEdit} />
           </div>
+
+          {modalOpen && selectedItem && (
+            <Modal onClose={() => setModalOpen(false)}>
+              <EditInventoryForm
+                item={selectedItem}
+                onClose={() => setModalOpen(false)}
+                onUpdated={fetchInventory}
+              />
+            </Modal>
+          )}
         </>
       )}
     </div>

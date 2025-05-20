@@ -1,3 +1,4 @@
+// BarangKeluar.jsx – Versi scrollable tanpa pagination
 import { useEffect, useState } from "react";
 import FilterUnitKeluar from "../components/filters/FilterUnitKeluar";
 import TableBarang from "../components//tables/TableBarang";
@@ -19,8 +20,6 @@ export default function BarangKeluar() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState({ tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: "" });
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
 
   const fetchData = async () => {
     try {
@@ -62,11 +61,6 @@ export default function BarangKeluar() {
   const filteredData = data.filter((item) =>
     item.nama?.toLowerCase().includes(search.trim().toLowerCase())
   );
-
-  const indexOfLast = currentPage * itemsPerPage;
-  const indexOfFirst = indexOfLast - itemsPerPage;
-  const currentItems = filteredData.slice(indexOfFirst, indexOfLast);
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
   const grafikData = () => {
     const result = {};
@@ -120,18 +114,17 @@ export default function BarangKeluar() {
         const err = await res.json();
         throw new Error(err.error || "Gagal menyimpan data");
       }
-      
+
       toast.success(editId ? "Barang berhasil diupdate!" : "Barang berhasil ditambahkan!", { id: toastId });
       resetForm();
       setModalOpen(false);
       fetchData();
 
-      // Sync Inventory
-await fetch(`http://localhost:3001/api/sync-inventory`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ kode: formData.kode, jumlah: -formData.jumlah, unit: formData.unit })
-});
+      await fetch(`http://localhost:3001/api/sync-inventory`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kode: formData.kode, jumlah: -formData.jumlah, unit: formData.unit })
+      });
 
     } catch (err) {
       toast.error(err.message, { id: toastId });
@@ -147,26 +140,26 @@ await fetch(`http://localhost:3001/api/sync-inventory`, {
   };
 
   const handleDelete = async (id) => {
-  if (!confirm("Yakin mau hapus barang ini?")) return;
-  const toastId = toast.loading("Menghapus barang...");
-  try {
-    const res = await fetch(`http://localhost:3001/api/barang-keluar/${id}`, { method: "DELETE" });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || "Gagal hapus barang");
+    if (!confirm("Yakin mau hapus barang ini?")) return;
+    const toastId = toast.loading("Menghapus barang...");
+    try {
+      const res = await fetch(`http://localhost:3001/api/barang-keluar/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || "Gagal hapus barang");
+      }
+      toast.success("Barang berhasil dihapus!", { id: toastId });
+      fetchData();
+    } catch (err) {
+      console.error("Error saat menghapus barang:", err);
+      toast.error(`Error: ${err.message}`, { id: toastId });
     }
-    toast.success("Barang berhasil dihapus!", { id: toastId });
-    fetchData();
-  } catch (err) {
-    console.error("Error saat menghapus barang:", err); // Debugging
-    toast.error(`Error: ${err.message}`, { id: toastId });
-  }
-};
+  };
 
   return (
     <div className="p-6 space-y-6">
-     <h1 className="text-xl font-semibold text-left">Data Barang Keluar</h1>
-     
+      <h1 className="text-xl font-semibold text-left">Data Barang Keluar</h1>
+
       <div className="flex flex-col md:flex-row gap-4">
         <FilterUnitKeluar value={filterUnit} onChange={setFilterUnit} />
         <input
@@ -198,32 +191,9 @@ await fetch(`http://localhost:3001/api/sync-inventory`, {
       {loading ? (
         <div className="text-center py-10">Loading...</div>
       ) : (
-        <>
-          <TableBarang data={currentItems} onEdit={handleEdit} onDelete={handleDelete} />
-          <div className="flex justify-center items-center gap-2 mt-4 flex-wrap">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              className="px-4 py-1 rounded border bg-gray-200 text-black disabled:opacity-50"
-              disabled={currentPage === 1}
-            >Previous</button>
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i + 1}
-                onClick={() => setCurrentPage(i + 1)}
-                className={`px-3 py-1 rounded font-medium text-sm border border-blue-500 text-blue-600 hover:bg-blue-500 hover:text-white transition duration-200 ${
-                  currentPage === i + 1 ? "bg-blue-500 text-white" : "bg-white"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-              className="px-4 py-1 rounded border bg-gray-200 text-black disabled:opacity-50"
-              disabled={indexOfLast >= filteredData.length}
-            >Next</button>
-          </div>
-        </>
+        <div className="max-h-[600px] overflow-y-auto rounded-xl">
+          <TableBarang data={filteredData} onEdit={handleEdit} onDelete={handleDelete} />
+        </div>
       )}
 
       {modalOpen && (

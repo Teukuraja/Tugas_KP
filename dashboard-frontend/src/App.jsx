@@ -18,16 +18,17 @@ import UploadResetData from "./pages/UploadResetData";
 import Login from "./pages/Login";
 import InventoryData from "./pages/InventoryData";
 import Logo from "./assets/logo.png";
+import Icon from "./assets/icon.svg";
 
 export default function App() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
- const isLoggedIn =
-  localStorage.getItem("isLoggedIn") === "true" ||
-  sessionStorage.getItem("isLoggedIn") === "true";
+  const isLoggedIn =
+    localStorage.getItem("isLoggedIn") === "true" ||
+    sessionStorage.getItem("isLoggedIn") === "true";
 
   const navItems = [
     { to: "/dashboard", label: "Dashboard" },
@@ -36,8 +37,6 @@ export default function App() {
     { to: "/inventory", label: "Inventory" },
     { to: "/upload-reset", label: "Upload & Reset Data" },
   ];
-
-  const closeSidebar = () => setSidebarOpen(false);
 
   const getPageTitle = (path) => {
     const current = navItems.find((item) => item.to === path);
@@ -49,7 +48,6 @@ export default function App() {
     return (
       <Link
         to={to}
-        onClick={closeSidebar}
         className={`py-2 px-4 rounded-lg transition font-medium w-full text-left ${
           isActive
             ? "bg-[#1D3557] text-white shadow-md"
@@ -80,9 +78,12 @@ export default function App() {
     <div className={`${darkMode ? "dark" : ""} min-h-screen flex flex-col`}>
       <Toaster position="top-right" reverseOrder={false} />
 
-      {/* HEADER */}
       {location.pathname !== "/login" && (
-        <header className="bg-[#1D3557] text-white px-6 py-3 flex items-center justify-between shadow-md relative z-10">
+        <header
+          className={`bg-[#1D3557] text-white px-6 py-3 flex items-center justify-between shadow-md relative z-10 transition-all duration-300 ${
+            sidebarOpen ? "md:ml-64" : "ml-0"
+          }`}
+        >
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="z-20 md:hidden"
@@ -111,7 +112,16 @@ export default function App() {
         </header>
       )}
 
-      {/* SIDEBAR BACKDROP */}
+      {!sidebarOpen && location.pathname !== "/login" && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="fixed top-20 left-4 z-50 bg-white rounded-full p-2 shadow-md md:block hidden"
+          title="Buka Sidebar"
+        >
+          <img src={Icon} alt="Toggle Icon" className="w-5 h-5" />
+        </button>
+      )}
+
       {sidebarOpen && location.pathname !== "/login" && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-10 md:hidden"
@@ -119,23 +129,41 @@ export default function App() {
         />
       )}
 
-      {/* MAIN CONTENT */}
       <div className="flex flex-1 bg-white dark:bg-[#121212] text-black dark:text-white transition-all">
-        {location.pathname !== "/login" && (
-          <aside
-            className={`bg-[#2B2D42] text-white w-64 p-6 flex flex-col items-start shadow-lg
-              fixed md:relative z-20 h-full md:h-auto transition-transform duration-300
-              ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
-          >
-            <nav className="flex flex-col gap-4 w-full">
-              {navItems.map((item) => (
-                <NavLink key={item.to} {...item} />
-              ))}
-            </nav>
-          </aside>
-        )}
+        <AnimatePresence>
+          {location.pathname !== "/login" && sidebarOpen && (
+            <motion.aside
+              key="sidebar"
+              initial={{ x: -300, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -300, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="bg-[#2B2D42] text-white w-64 p-6 flex flex-col items-start shadow-lg fixed top-0 left-0 h-screen z-30"
+            >
+              <div className="relative w-full mb-8">
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="absolute top-2 right-2 z-50 bg-white rounded-full p-2 shadow-md hover:scale-105 transition md:flex items-center justify-center hidden"
+                  title="Sembunyikan Sidebar"
+                >
+                  <img src={Icon} alt="Tutup Sidebar" className="w-5 h-5" />
+                </button>
+              </div>
 
-        <main className="flex-1 p-6 overflow-y-auto relative">
+             <nav className="flex flex-col gap-4 w-full mt-8">
+                {navItems.map((item) => (
+                  <NavLink key={item.to} {...item} />
+                ))}
+              </nav>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
+        <main
+          className={`w-full min-w-0 transition-all duration-300 relative overflow-y-auto ${
+            sidebarOpen ? "md:ml-64" : "ml-0"
+          } p-4 md:p-6`}
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -145,13 +173,22 @@ export default function App() {
               transition={{ duration: 0.4 }}
             >
               <Routes location={location} key={location.pathname}>
+                <Route path="/" element={<Navigate to="/dashboard" />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/dashboard" element={<DashboardRingkasan />} />
-                <Route path="/barang-masuk" element={<BarangMasuk />} />
-                <Route path="/barang-keluar" element={<BarangKeluar />} />
-                <Route path="/inventory" element={<InventoryData />} />
+                <Route
+                  path="/barang-masuk"
+                  element={<BarangMasuk sidebarOpen={sidebarOpen} />}
+                />
+                <Route
+                  path="/barang-keluar"
+                  element={<BarangKeluar sidebarOpen={sidebarOpen} />}
+                />
+                <Route
+                  path="/inventory"
+                  element={<InventoryData sidebarOpen={sidebarOpen} />}
+                />
                 <Route path="/upload-reset" element={<UploadResetData />} />
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
                 <Route
                   path="*"
                   element={

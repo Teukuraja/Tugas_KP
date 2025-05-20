@@ -123,6 +123,7 @@ app.put("/api/barang-masuk/:id", (req, res) => {
 
 
 
+
       // Sinkronisasi inventory: kurangi jumlah barang di inventory
       syncInventory(row.kode, row.nama, -row.jumlah, row.satuan, row.unit);
 
@@ -130,6 +131,27 @@ app.put("/api/barang-masuk/:id", (req, res) => {
       res.json({ message: "Barang masuk dan barang keluar terkait berhasil dihapus" });
     });
   });
+});
+
+
+// Edit Barang Inventory
+app.put("/api/inventory/:id", (req, res) => {
+  const { id } = req.params;
+  const { tanggal, kode, nama, alias, jumlah, satuan, unit } = req.body;
+
+  db.run(
+    `UPDATE inventory SET tanggal = ?, kode = ?, nama = ?, alias = ?, jumlah = ?, satuan = ?, unit = ? WHERE id = ?`,
+    [tanggal, kode, nama, alias, jumlah, satuan, unit, id],
+    function (err) {
+      if (err) {
+        console.error("Error saat mengupdate inventory:", err.message);
+        return res.status(500).json({ error: "Gagal mengupdate inventory" });
+      }
+
+      console.log(`Barang inventory dengan ID ${id} berhasil diupdate`);
+      res.json({ message: "Inventory berhasil diupdate" });
+    }
+  );
 });
 
 // === TABEL ===
@@ -142,10 +164,18 @@ db.serialize(() => {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tanggal TEXT, kode TEXT, nama TEXT, jumlah INTEGER, satuan TEXT, unit TEXT
   )`);
-  db.run(`CREATE TABLE IF NOT EXISTS inventory (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tanggal TEXT, kode TEXT, nama TEXT, alias TEXT, jumlah INTEGER, satuan TEXT, unit TEXT
-  )`);
+ db.run(`CREATE TABLE IF NOT EXISTS inventory (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  tanggal TEXT,
+  kode TEXT,
+  nama TEXT,
+  alias TEXT,
+  jumlah INTEGER,
+  satuan TEXT,
+  unit TEXT,
+  UNIQUE(kode, unit)  -- ✅ PENTING untuk mencegah dobel
+)`);
+
 });
 
 const upload = multer({ dest: "uploads/" });
@@ -193,11 +223,17 @@ function syncInventory(kode, nama, delta, satuan, unit) {
         });
       }
     } else if (delta > 0) {
-      db.run(`INSERT INTO inventory (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`,
-        [today, kode, nama, delta, satuan, unit], (err) => {
-          if (err) console.error("Error menambah ke inventory:", err.message);
-          else console.log(`Barang dengan kode ${kode} berhasil ditambahkan ke inventory`);
-        });
+      db.run(`
+  INSERT INTO inventory (tanggal, kode, nama, jumlah, satuan, unit)
+  SELECT ?, ?, ?, ?, ?, ?
+  WHERE NOT EXISTS (
+    SELECT 1 FROM inventory WHERE kode = ? AND unit = ?
+  )
+`, [today, kode, nama, delta, satuan, unit, kode, unit], (err) => {
+  if (err) console.error("Error menambah ke inventory:", err.message);
+  else console.log(`Barang dengan kode ${kode} berhasil ditambahkan ke inventory`);
+});
+
     }
   });
 }
@@ -292,38 +328,40 @@ app.get("/api/barang-keluar", (req, res) => {
     res.json(rows);
   });
 });
-// Edit Barang Keluar
-app.put("/api/barang-keluar/:id", (req, res) => {
+// Edit Barang Masuk
+app.put("/api/barang-masuk/:id", (req, res) => {
   const { id } = req.params;
   const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
 
-  // Ambil data barang keluar sebelum diupdate
-  db.get("SELECT kode, nama, jumlah, satuan, unit FROM barang_keluar WHERE id = ?", [id], (err, oldRow) => {
+  // Ambil data barang masuk sebelum diupdate
+  db.get("SELECT kode, nama, jumlah, satuan, unit FROM barang_masuk WHERE id = ?", [id], (err, oldRow) => {
     if (err) {
-      console.error("Error saat mengambil data barang keluar sebelum update:", err.message);
-      return res.status(500).json({ error: "Gagal mengambil data barang keluar" });
+      console.error("Error saat mengambil data barang masuk sebelum update:", err.message);
+      return res.status(500).json({ error: "Gagal mengambil data barang masuk" });
     }
 
     if (!oldRow) {
-      return res.status(404).json({ error: "Barang keluar tidak ditemukan" });
+      return res.status(404).json({ error: "Barang masuk tidak ditemukan" });
     }
 
     // Hitung delta jumlah untuk sinkronisasi inventory
     const deltaJumlah = jumlah - oldRow.jumlah;
 
-    // Update barang keluar
-    db.run(`UPDATE barang_keluar SET tanggal = ?, kode = ?, nama = ?, jumlah = ?, satuan = ?, unit = ? WHERE id = ?`,
-      [tanggal, kode, nama, jumlah, satuan, unit, id], function (err) {
+    // Update barang masuk
+    db.run(
+      `UPDATE barang_masuk SET tanggal = ?, kode = ?, nama = ?, jumlah = ?, satuan = ?, unit = ? WHERE id = ?`,
+      [tanggal, kode, nama, jumlah, satuan, unit, id],
+      function (err) {
         if (err) {
-          console.error("Error saat mengupdate barang keluar:", err.message);
-          return res.status(500).json({ error: "Gagal mengupdate barang keluar" });
+          console.error("Error saat mengupdate barang masuk:", err.message);
+          return res.status(500).json({ error: "Gagal mengupdate barang masuk" });
         }
 
-        // Sinkronisasi inventory: sesuaikan jumlah berdasarkan perubahan
+        // Sinkronisasi inventory
         syncInventory(kode, nama, deltaJumlah, satuan, unit);
 
-        console.log(`Barang keluar dengan ID ${id} berhasil diupdate`);
-        res.json({ message: "Barang keluar berhasil diupdate" });
+        console.log(`Barang masuk dengan ID ${id} berhasil diupdate`);
+        res.json({ message: "Barang masuk berhasil diupdate" });
       }
     );
   });
@@ -488,12 +526,22 @@ app.post("/upload-inventory", upload.single("file"), (req, res) => {
     const workbook = xlsx.readFile(req.file.path);
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const data = xlsx.utils.sheet_to_json(sheet);
-    const stmt = db.prepare("INSERT INTO inventory (tanggal, kode, nama, alias, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?, ?)");
+   const stmt = db.prepare(`
+  INSERT INTO inventory (tanggal, kode, nama, alias, jumlah, satuan, unit)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
+  ON CONFLICT(kode, unit) DO UPDATE SET
+    tanggal = excluded.tanggal,
+    nama = excluded.nama,
+    alias = excluded.alias,
+    jumlah = excluded.jumlah,
+    satuan = excluded.satuan
+`);
+
 
     db.serialize(() => {
       data.forEach(item => {
         const tanggal = convertExcelDate(item.Tanggal) || new Date().toISOString().split("T")[0];
-        const kode = item.Kode || autoKode("INV");
+        const kode = (item.Kode || autoKode("INV")).replace(/\s/g, "").toUpperCase();
         const nama = item["Nama Barang"] || "";
         const alias = item.Alias || "";
         const jumlah = parseInt(item["Sisa Akhir"] || item.Jumlah || 0);
@@ -523,26 +571,35 @@ app.post("/upload-barang-masuk", upload.single("file"), (req, res) => {
     db.serialize(() => {
       data.forEach(item => {
         const tanggal = convertExcelDate(item.Tanggal);
-        const kode = item.Kode || autoKode("IN");
+        const kode = (item.Kode || autoKode("IN")).replace(/\s/g, "").toUpperCase();
         const nama = item["Nama Barang"] || "";
         const jumlah = parseInt(item.Jumlah || 0);
         const satuan = item.Satuan || "";
         const unit = normalizeUnit(item.Unit || "");
 
         if (!kode || !nama || !jumlah) return;
-        db.run(`INSERT INTO barang_masuk (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`,
-          [tanggal, kode, nama, jumlah, satuan, unit]);
-        syncInventory(kode, nama, jumlah, satuan, unit);
+
+        // ✅ HANYA masuk ke tabel barang_masuk — inventory tidak disentuh
+        db.get("SELECT id FROM barang_masuk WHERE kode = ? AND unit = ?", [kode, unit], (err, row) => {
+          if (!row) {
+            db.run(
+              `INSERT INTO barang_masuk (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`,
+              [tanggal, kode, nama, jumlah, satuan, unit]
+            );
+          }
+        });
       });
     });
 
     fs.unlinkSync(req.file.path);
-    res.json({ message: 'Barang masuk berhasil diupload!' });
+    res.json({ message: 'Barang masuk berhasil diupload! (tanpa sync inventory)' });
   } catch (err) {
     console.error("Upload Barang Masuk Error:", err);
     res.status(500).json({ message: 'Gagal upload barang masuk' });
   }
 });
+
+
 
 app.post("/upload-barang-keluar", upload.single("file"), (req, res) => {
   try {
@@ -553,7 +610,7 @@ app.post("/upload-barang-keluar", upload.single("file"), (req, res) => {
     db.serialize(() => {
       data.forEach(item => {
         const tanggal = convertExcelDate(item.Tanggal);
-        const kode = item.Kode || autoKode("OUT");
+        const kode = (item.Kode || autoKode("OUT")).replace(/\s/g, "").toUpperCase();
         const nama = item["Nama Barang"] || "";
         const jumlah = parseInt(item.Jumlah || 0);
         const satuan = item.Satuan || "";

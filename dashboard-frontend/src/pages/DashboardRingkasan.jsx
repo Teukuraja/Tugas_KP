@@ -1,19 +1,21 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
-
+import LowInventoryPanel from "../components/ui/LowInventoryPanel";
+import { motion, AnimatePresence } from "framer-motion";
+import { useLocation } from "react-router-dom";
 import SummaryCards from "../components/ui/SummaryCards";
 import ChartPie from "../components/charts/ChartPie";
 import AreaChartTrend from "../components/charts/AreaChartTrend";
-
 export default function DashboardRingkasan() {
+  const location = useLocation();
   const navigate = useNavigate();
   const [barangMasuk, setBarangMasuk] = useState([]);
   const [barangKeluar, setBarangKeluar] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
+ const [showLowStock, setShowLowStock] = useState(false);
 
  useEffect(() => {
   const isLoggedIn = localStorage.getItem("isLoggedIn") || sessionStorage.getItem("isLoggedIn");
@@ -21,8 +23,16 @@ export default function DashboardRingkasan() {
     navigate("/login");
     return;
   }
+
+  // Cek jika ada query openLowStock=true → maka jangan tampilkan panel tabel
+  const params = new URLSearchParams(location.search);
+  if (params.get("openLowStock") === "true") {
+    setShowLowStock(false);
+  }
+
   fetchData();
-}, [navigate]);
+}, [navigate, location.search]);
+
 
 
   const fetchData = async () => {
@@ -91,39 +101,105 @@ export default function DashboardRingkasan() {
 </motion.h1>
 
 
-      <SummaryCards
-        totalMasuk={totalMasuk}
-        totalKeluar={totalKeluar}
-        totalInventory={totalInventory}
-        loading={loading}
-      />
+  <div className="grid md:grid-cols-4 gap-6">
+  <div className="md:col-span-3">
+    <SummaryCards
+      totalMasuk={totalMasuk}
+      totalKeluar={totalKeluar}
+      totalInventory={totalInventory}
+      loading={loading}
+    />
+  </div>
 
-      {loading ? (
-        <div className="text-center text-gray-500">Loading grafik...</div>
+ <AnimatePresence>
+  {inventory.some(item => item.jumlah <= 2) && (
+    <div className="md:col-span-1 self-start mt-10">
+      {showLowStock ? (
+        <>
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+              Stok Sangat Rendah
+            </h2>
+            <button
+              onClick={() => setShowLowStock(false)}
+              className="text-xs text-blue-600 hover:underline"
+            >
+              Sembunyikan
+            </button>
+          </div>
+          <motion.div
+            key="low-inventory"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.4 }}
+          >
+            <LowInventoryPanel data={inventory.filter(item => item.jumlah <= 2)} />
+          </motion.div>
+        </>
       ) : (
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
-            <AreaChartTrend
-              title="Trend Barang Masuk (Bulanan)"
-              data={formatAreaChartData(barangMasuk)}
-            />
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
-            <AreaChartTrend
-              title="Trend Barang Keluar (Bulanan)"
-              data={formatAreaChartData(barangKeluar)}
-            />
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
-              <ChartPie title="Komposisi Barang Masuk" data={formatDataPie(barangMasuk)} />
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
-              <ChartPie title="Komposisi Barang Keluar" data={formatDataPie(barangKeluar)} />
-            </div>
-          </div>
-        </div>
+       <div
+  onClick={() => navigate("/inventory?filter=lowstock")}
+  className="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100 p-4 rounded-2xl shadow-md cursor-pointer transition hover:scale-[1.02]"
+>
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-2">
+      <span className="text-xl">⚠️</span>
+      <h3 className="font-semibold text-sm">Stok Sangat Rendah</h3>
+    </div>
+    <p className="font-bold text-lg">
+      {inventory.filter(item => item.jumlah <= 2).length} item
+    </p>
+  </div>
+  <p className="text-xs mt-1 text-red-700 dark:text-red-300">
+    Klik untuk melihat detail
+  </p>
+</div>
+
       )}
     </div>
+  )}
+</AnimatePresence>
+
+  
+</div>
+     {loading ? (
+  <div className="text-center text-gray-500">Loading grafik...</div>
+) : (
+  <>
+    <div className="grid md:grid-cols-2 gap-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
+        <AreaChartTrend
+          title="Trend Barang Masuk (Bulanan)"
+          data={formatAreaChartData(barangMasuk)}
+        />
+      </div>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
+        <AreaChartTrend
+          title="Trend Barang Keluar (Bulanan)"
+          data={formatAreaChartData(barangKeluar)}
+        />
+      </div>
+    </div>
+
+    <div className="grid md:grid-cols-2 gap-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
+        <ChartPie
+          title="Komposisi Barang Masuk"
+          data={formatDataPie(barangMasuk)}
+        />
+      </div>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
+        <ChartPie
+          title="Komposisi Barang Keluar"
+          data={formatDataPie(barangKeluar)}
+        />
+      </div>
+    </div>
+  </>
+)}
+
+       </div>
   );
 }
+
