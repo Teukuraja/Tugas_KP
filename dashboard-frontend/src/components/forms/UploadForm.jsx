@@ -1,9 +1,11 @@
+
 import { useState, useRef } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { UploadCloud, XCircle } from "lucide-react";
 import Button from "../ui/Button";
 
+// === Komponen UploadForm untuk upload file excel data barang ===
 export default function UploadForm({ type }) {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -11,20 +13,24 @@ export default function UploadForm({ type }) {
   const inputRef = useRef();
   const intervalRef = useRef(null);
 
+  // Handler perubahan file input
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
   };
 
+  // Handler drop file drag and drop
   const handleDrop = (e) => {
     e.preventDefault();
     const droppedFile = e.dataTransfer.files[0];
     if (droppedFile) setFile(droppedFile);
   };
 
+  // Handler drag over untuk mencegah default
   const handleDragOver = (e) => {
     e.preventDefault();
   };
 
+  // Hapus file dan reset progress
   const handleRemoveFile = () => {
     setFile(null);
     setProgress(0);
@@ -32,6 +38,7 @@ export default function UploadForm({ type }) {
     if (intervalRef.current) clearInterval(intervalRef.current);
   };
 
+  // Mulai progress palsu untuk animasi progress bar
   const startFakeProgress = () => {
     let fake = 0;
     intervalRef.current = setInterval(() => {
@@ -41,6 +48,7 @@ export default function UploadForm({ type }) {
     }, 50);
   };
 
+  // Handler upload file ke server
   const handleUpload = async (e) => {
     e.preventDefault();
     if (!file) {
@@ -86,6 +94,7 @@ export default function UploadForm({ type }) {
     }
   };
 
+  // Dapatkan label tombol berdasarkan tipe upload
   const getButtonLabel = () => {
     switch (type) {
       case "masuk":

@@ -1,3 +1,8 @@
+
+/**
+ * Halaman DashboardRingkasan untuk menampilkan ringkasan data gudang sparepart.
+ * Mengelola pengambilan data, loading, dan tampilan grafik serta panel stok rendah.
+ */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -8,33 +13,39 @@ import { useLocation } from "react-router-dom";
 import SummaryCards from "../components/ui/SummaryCards";
 import ChartPie from "../components/charts/ChartPie";
 import AreaChartTrend from "../components/charts/AreaChartTrend";
+
 export default function DashboardRingkasan() {
   const location = useLocation();
   const navigate = useNavigate();
+  // State data barang masuk
   const [barangMasuk, setBarangMasuk] = useState([]);
+  // State data barang keluar
   const [barangKeluar, setBarangKeluar] = useState([]);
+  // State data inventory
   const [inventory, setInventory] = useState([]);
+  // State loading data
   const [loading, setLoading] = useState(true);
- const [showLowStock, setShowLowStock] = useState(false);
+  // State untuk menampilkan panel stok rendah
+  const [showLowStock, setShowLowStock] = useState(false);
 
- useEffect(() => {
-  const isLoggedIn = localStorage.getItem("isLoggedIn") || sessionStorage.getItem("isLoggedIn");
-  if (!isLoggedIn) {
-    navigate("/login");
-    return;
-  }
+  // useEffect untuk cek login dan query param, lalu ambil data
+  useEffect(() => {
+    const isLoggedIn = localStorage.getItem("isLoggedIn") || sessionStorage.getItem("isLoggedIn");
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
 
-  // Cek jika ada query openLowStock=true → maka jangan tampilkan panel tabel
-  const params = new URLSearchParams(location.search);
-  if (params.get("openLowStock") === "true") {
-    setShowLowStock(false);
-  }
+    // Cek jika ada query openLowStock=true → maka jangan tampilkan panel tabel
+    const params = new URLSearchParams(location.search);
+    if (params.get("openLowStock") === "true") {
+      setShowLowStock(false);
+    }
 
-  fetchData();
-}, [navigate, location.search]);
+    fetchData();
+  }, [navigate, location.search]);
 
-
-
+  // === Fungsi untuk mengambil data dari API ===
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -62,10 +73,14 @@ export default function DashboardRingkasan() {
     }
   };
 
+  // Hitung total barang masuk
   const totalMasuk = barangMasuk.reduce((sum, item) => sum + item.jumlah, 0);
+  // Hitung total barang keluar
   const totalKeluar = barangKeluar.reduce((sum, item) => sum + item.jumlah, 0);
+  // Hitung total inventory
   const totalInventory = inventory.reduce((sum, item) => sum + item.jumlah, 0);
 
+  // === Fungsi untuk format data pie chart berdasarkan unit ===
   const formatDataPie = (data) => {
     const result = {};
     data.forEach((item) => {
@@ -79,6 +94,7 @@ export default function DashboardRingkasan() {
     }));
   };
 
+  // === Fungsi untuk format data area chart berdasarkan bulan dan tahun ===
   const formatAreaChartData = (data) => {
     const agregasi = {};
     data.forEach((item) => {

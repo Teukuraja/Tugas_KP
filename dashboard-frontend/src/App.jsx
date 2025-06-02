@@ -18,18 +18,22 @@ import UploadResetData from "./pages/UploadResetData";
 import Login from "./pages/Login";
 import InventoryData from "./pages/InventoryData";
 import Logo from "./assets/logo.png";
-import Icon from "./assets/icon.svg";
 
 export default function App() {
+  // State untuk mengatur sidebar terbuka atau tertutup
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  // State untuk mode gelap
   const [darkMode, setDarkMode] = useState(false);
+  // Hooks React Router untuk lokasi dan navigasi
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Cek status login dari localStorage atau sessionStorage
   const isLoggedIn =
     localStorage.getItem("isLoggedIn") === "true" ||
     sessionStorage.getItem("isLoggedIn") === "true";
 
+  // Daftar item navigasi sidebar
   const navItems = [
     { to: "/dashboard", label: "Dashboard" },
     { to: "/barang-masuk", label: "Barang Masuk" },
@@ -38,11 +42,22 @@ export default function App() {
     { to: "/upload-reset", label: "Upload & Reset Data" },
   ];
 
+  /**
+   * Mendapatkan judul halaman berdasarkan path saat ini.
+   * @param {string} path - Path URL saat ini.
+   * @returns {string} Judul halaman.
+   */
   const getPageTitle = (path) => {
     const current = navItems.find((item) => item.to === path);
     return current ? current.label : "Dashboard Analitik";
   };
 
+  /**
+   * Komponen NavLink untuk link navigasi sidebar.
+   * Menandai link aktif berdasarkan lokasi saat ini.
+   * @param {string} to - Path tujuan.
+   * @param {string} label - Label tampilan.
+   */
   const NavLink = ({ to, label }) => {
     const isActive = location.pathname === to;
     return (
@@ -59,6 +74,10 @@ export default function App() {
     );
   };
 
+  /**
+   * Fungsi untuk menangani logout pengguna.
+   * Menghapus status login dan mengarahkan ke halaman login.
+   */
   const handleLogout = () => {
     const confirmLogout = window.confirm("Yakin mau logout?");
     if (confirmLogout) {
@@ -70,6 +89,7 @@ export default function App() {
     }
   };
 
+  // Redirect ke login jika belum login dan bukan di halaman login
   if (!isLoggedIn && location.pathname !== "/login") {
     return <Navigate to="/login" replace />;
   }
@@ -80,18 +100,19 @@ export default function App() {
 
       {location.pathname !== "/login" && (
         <header
-          className={`bg-[#1D3557] text-white px-6 py-3 flex items-center justify-between shadow-md relative z-10 transition-all duration-300 ${
+          className={`bg-[#1D3557] text-white px-6 py-3 flex items-center justify-start shadow-md relative z-10 transition-all duration-300 ${
             sidebarOpen ? "md:ml-64" : "ml-0"
           }`}
         >
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="z-20 md:hidden"
+            className="z-20 mr-4"
+            title="Toggle Sidebar"
           >
             <Menu className="w-6 h-6" />
           </button>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mr-auto">
             <img src={Logo} alt="Logo" className="w-10 h-10 object-contain" />
             <h1 className="text-2xl font-bold hidden md:block">
               {getPageTitle(location.pathname)}
@@ -112,15 +133,8 @@ export default function App() {
         </header>
       )}
 
-      {!sidebarOpen && location.pathname !== "/login" && (
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="fixed top-20 left-4 z-50 bg-white rounded-full p-2 shadow-md md:block hidden"
-          title="Buka Sidebar"
-        >
-          <img src={Icon} alt="Toggle Icon" className="w-5 h-5" />
-        </button>
-      )}
+
+
 
       {sidebarOpen && location.pathname !== "/login" && (
         <div
@@ -140,15 +154,6 @@ export default function App() {
               transition={{ duration: 0.3 }}
               className="bg-[#2B2D42] text-white w-64 p-6 flex flex-col items-start shadow-lg fixed top-0 left-0 h-screen z-30"
             >
-              <div className="relative w-full mb-8">
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="absolute top-2 right-2 z-50 bg-white rounded-full p-2 shadow-md hover:scale-105 transition md:flex items-center justify-center hidden"
-                  title="Sembunyikan Sidebar"
-                >
-                  <img src={Icon} alt="Tutup Sidebar" className="w-5 h-5" />
-                </button>
-              </div>
 
              <nav className="flex flex-col gap-4 w-full mt-8">
                 {navItems.map((item) => (

@@ -1,6 +1,9 @@
+
 import { useState } from "react";
 
+// === Komponen FormInventory untuk form input data inventory ===
 export default function FormInventory({ onSubmit, onClose, initialData = {} }) {
+  // State form dengan nilai awal dari initialData
   const [form, setForm] = useState({
     tanggal: initialData.tanggal || "",
     kode: initialData.kode || "",
@@ -10,11 +13,13 @@ export default function FormInventory({ onSubmit, onClose, initialData = {} }) {
     unit: initialData.unit || "",
   });
 
+  // Handler perubahan input form
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
   };
 
+  // Handler submit form
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(form);
@@ -110,3 +115,4 @@ export default function FormInventory({ onSubmit, onClose, initialData = {} }) {
     </form>
   );
 }
+ 

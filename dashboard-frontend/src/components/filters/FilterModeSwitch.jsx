@@ -1,7 +1,8 @@
-// ====================
-// components/ui/FilterModeSwitch.jsx (FINAL UPGRADE CLEAN)
-// ====================
 
+/**
+ * Komponen FilterModeSwitch untuk memilih mode filter data (bulanan, mingguan, tahunan).
+ * Menggunakan framer-motion untuk animasi tombol.
+ */
 import { motion } from "framer-motion";
 
 export default function FilterModeSwitch({ mode, setMode }) {

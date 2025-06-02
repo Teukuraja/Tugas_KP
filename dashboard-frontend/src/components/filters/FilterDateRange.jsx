@@ -1,13 +1,14 @@
-// =========================
-// src/components/ui/FilterDateRange.jsx
-// =========================
 
+/**
+ * Komponen FilterDateRange untuk memilih rentang tanggal.
+ * Mengelola state tanggal mulai dan tanggal akhir secara lokal.
+ * Memanggil onChange saat tanggal berubah.
+ */
 import { useState } from "react";
 
 export default function FilterDateRange({ startDate, endDate, onChange }) {
   const [localStart, setLocalStart] = useState(startDate);
   const [localEnd, setLocalEnd] = useState(endDate);
-
   const handleStartChange = (e) => {
     setLocalStart(e.target.value);
     onChange(e.target.value, localEnd);

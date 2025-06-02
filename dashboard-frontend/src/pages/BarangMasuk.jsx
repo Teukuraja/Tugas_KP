@@ -1,4 +1,8 @@
-// BarangMasuk.jsx – Versi scrollable tanpa pagination
+
+/**
+ * Halaman BarangMasuk untuk menampilkan dan mengelola data barang masuk.
+ * Menyediakan fitur filter, pencarian, grafik, export, tambah, edit, dan hapus data.
+ */
 import { useEffect, useState } from "react";
 import FilterUnitMasuk from "../components/filters/FilterUnitKeluar";
 import TableBarang from "../components/tables/TableBarang";
@@ -12,6 +16,9 @@ import { saveAs } from "file-saver";
 import { toast } from "react-hot-toast";
 
 export default function BarangMasuk({ sidebarOpen }) {
+  // State data barang masuk, filter unit, pencarian nama barang
+  // State error, loading data, modal form tambah/edit, status submit form
+  // State id data yang diedit, data form
   const [data, setData] = useState([]);
   const [filterUnit, setFilterUnit] = useState("Semua Unit");
   const [search, setSearch] = useState("");
@@ -22,6 +29,7 @@ export default function BarangMasuk({ sidebarOpen }) {
   const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState({ tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: "" });
 
+  // Fungsi autocomplete data inventory berdasarkan nama barang
   const fetchInventoryData = async (nama) => {
     try {
       const res = await fetch("http://localhost:3001/api/inventory");
@@ -40,6 +48,7 @@ export default function BarangMasuk({ sidebarOpen }) {
     }
   };
 
+  // Fungsi autocomplete data inventory dengan alias
   const fetchSuggestions = async (nama) => {
     if (!nama) return;
     try {
@@ -59,6 +68,7 @@ export default function BarangMasuk({ sidebarOpen }) {
     }
   };
 
+  // Fungsi mengambil data barang masuk dari API
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -75,12 +85,15 @@ export default function BarangMasuk({ sidebarOpen }) {
     }
   };
 
+  // useEffect untuk fetch data saat filter unit berubah
   useEffect(() => { fetchData(); }, [filterUnit]);
 
+  // Filter data berdasarkan pencarian nama
   const filteredData = data.filter((item) =>
     item.nama?.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Fungsi menyiapkan data grafik berdasarkan unit
   const grafikData = () => {
     const result = {};
     filteredData.forEach((item) => {
@@ -90,6 +103,7 @@ export default function BarangMasuk({ sidebarOpen }) {
     return Object.entries(result).map(([unit, jumlah]) => ({ unit, jumlah }));
   };
 
+  // Fungsi export data ke PDF
   const exportPDF = () => {
     const doc = new jsPDF();
     doc.text("Laporan Barang Masuk", 14, 10);
@@ -101,6 +115,7 @@ export default function BarangMasuk({ sidebarOpen }) {
     toast.success("Export PDF berhasil!");
   };
 
+  // Fungsi export data ke Excel
   const exportExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(filteredData);
     const workbook = XLSX.utils.book_new();
@@ -110,11 +125,13 @@ export default function BarangMasuk({ sidebarOpen }) {
     toast.success("Export Excel berhasil!");
   };
 
+  // Reset form dan editId
   const resetForm = () => {
     setFormData({ tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: "" });
     setEditId(null);
   };
 
+  // Handler submit form tambah/edit data
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.jumlah || formData.jumlah < 1) {
@@ -146,12 +163,14 @@ export default function BarangMasuk({ sidebarOpen }) {
     }
   };
 
+  // Handler edit data, isi form dan buka modal
   const handleEdit = (item) => {
     setFormData(item);
     setEditId(item.id);
     setModalOpen(true);
   };
 
+  // Handler hapus data dengan konfirmasi
   const handleDelete = async (id) => {
     if (!confirm("Yakin mau hapus barang ini?")) return;
     const toastId = toast.loading("Menghapus barang...");

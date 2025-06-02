@@ -1,3 +1,5 @@
+  
+// === Komponen ChartModeSwitch untuk toggle mode tampilan chart antara number dan analytics ===
 export default function ChartModeSwitch({ chartMode, setChartMode }) {
     return (
       <div className="flex justify-center mt-10">

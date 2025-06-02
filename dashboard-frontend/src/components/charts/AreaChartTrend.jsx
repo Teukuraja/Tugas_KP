@@ -1,7 +1,8 @@
-// =========================
-// components/ui/AreaChartTrend.jsx (Final Cleanest Version 🚀)
-// =========================
 
+/**
+ * Komponen AreaChartTrend untuk menampilkan grafik area tren data.
+ * Menerima props title dan data array.
+ */
 import {
   ResponsiveContainer,
   AreaChart,
@@ -14,6 +15,7 @@ import {
 import CustomTooltipArea from "../ui/CustomTooltipArea";
 
 export default function AreaChartTrend({ title, data = [] }) {
+  // Cek apakah data tersedia
   const hasData = Array.isArray(data) && data.length > 0;
 
   return (

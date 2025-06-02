@@ -8,6 +8,7 @@ import {
     ResponsiveContainer,
   } from "recharts";
   
+  // === Komponen ChartBarang untuk menampilkan grafik batang data barang ===
   export default function ChartBarang({ data }) {
     return (
       <ResponsiveContainer width="100%" height={300}>

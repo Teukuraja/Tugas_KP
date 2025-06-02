@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import {
   PieChart,
@@ -13,6 +14,7 @@ const COLORS = [
   "#7F9CF5", "#805AD5", "#9F7AEA", "#B794F4", "#D53F8C"
 ];
 
+// === Komponen ChartPie untuk menampilkan grafik pie/donut ===
 export default function ChartPie({ title, data }) {
   return (
     <div className="w-full h-[420px] px-2">
