@@ -1,42 +1,37 @@
-
 /**
  * Halaman DashboardRingkasan untuk menampilkan ringkasan data gudang sparepart.
  * Mengelola pengambilan data, loading, dan tampilan grafik serta panel stok rendah.
  */
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
 import LowInventoryPanel from "../components/ui/LowInventoryPanel";
 import { motion, AnimatePresence } from "framer-motion";
-import { useLocation } from "react-router-dom";
 import SummaryCards from "../components/ui/SummaryCards";
 import ChartPie from "../components/charts/ChartPie";
 import AreaChartTrend from "../components/charts/AreaChartTrend";
+import FilterModeSwitch from "../components/filters/FilterModeSwitch";
 
 export default function DashboardRingkasan() {
   const location = useLocation();
   const navigate = useNavigate();
-  // State data barang masuk
-  const [barangMasuk, setBarangMasuk] = useState([]);
-  // State data barang keluar
-  const [barangKeluar, setBarangKeluar] = useState([]);
-  // State data inventory
-  const [inventory, setInventory] = useState([]);
-  // State loading data
-  const [loading, setLoading] = useState(true);
-  // State untuk menampilkan panel stok rendah
-  const [showLowStock, setShowLowStock] = useState(false);
 
-  // useEffect untuk cek login dan query param, lalu ambil data
+  const [barangMasuk, setBarangMasuk] = useState([]);
+  const [barangKeluar, setBarangKeluar] = useState([]);
+  const [inventory, setInventory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showLowStock, setShowLowStock] = useState(false);
+  const [mode, setMode] = useState("monthly");
+
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isLoggedIn") || sessionStorage.getItem("isLoggedIn");
+    const isLoggedIn =
+      localStorage.getItem("isLoggedIn") || sessionStorage.getItem("isLoggedIn");
     if (!isLoggedIn) {
       navigate("/login");
       return;
     }
 
-    // Cek jika ada query openLowStock=true → maka jangan tampilkan panel tabel
     const params = new URLSearchParams(location.search);
     if (params.get("openLowStock") === "true") {
       setShowLowStock(false);
@@ -45,7 +40,6 @@ export default function DashboardRingkasan() {
     fetchData();
   }, [navigate, location.search]);
 
-  // === Fungsi untuk mengambil data dari API ===
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -73,14 +67,10 @@ export default function DashboardRingkasan() {
     }
   };
 
-  // Hitung total barang masuk
   const totalMasuk = barangMasuk.reduce((sum, item) => sum + item.jumlah, 0);
-  // Hitung total barang keluar
   const totalKeluar = barangKeluar.reduce((sum, item) => sum + item.jumlah, 0);
-  // Hitung total inventory
   const totalInventory = inventory.reduce((sum, item) => sum + item.jumlah, 0);
 
-  // === Fungsi untuk format data pie chart berdasarkan unit ===
   const formatDataPie = (data) => {
     const result = {};
     data.forEach((item) => {
@@ -94,11 +84,17 @@ export default function DashboardRingkasan() {
     }));
   };
 
-  // === Fungsi untuk format data area chart berdasarkan bulan dan tahun ===
-  const formatAreaChartData = (data) => {
+  const formatAreaChartData = (data, mode) => {
     const agregasi = {};
     data.forEach((item) => {
-      const key = dayjs(item.tanggal).format("MMM YYYY");
+      let key = "";
+      if (mode === "weekly") {
+        key = dayjs(item.tanggal).startOf("week").format("YYYY-MM-DD");
+      } else if (mode === "monthly") {
+        key = dayjs(item.tanggal).format("MMM YYYY");
+      } else if (mode === "yearly") {
+        key = dayjs(item.tanggal).format("YYYY");
+      }
       agregasi[key] = (agregasi[key] || 0) + item.jumlah;
     });
     return Object.entries(agregasi).map(([label, total]) => ({ label, total }));
@@ -110,112 +106,107 @@ export default function DashboardRingkasan() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        
-  className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-white mb-4 text-left"
->
-  Dashboard Gudang Sparepart
-</motion.h1>
+        className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-white mb-4 text-left"
+      >
+        Dashboard Gudang Sparepart
+      </motion.h1>
 
+      <div className="grid md:grid-cols-4 gap-6">
+        <div className="md:col-span-3">
+          <SummaryCards
+            totalMasuk={totalMasuk}
+            totalKeluar={totalKeluar}
+            totalInventory={totalInventory}
+            loading={loading}
+          />
+        </div>
 
-  <div className="grid md:grid-cols-4 gap-6">
-  <div className="md:col-span-3">
-    <SummaryCards
-      totalMasuk={totalMasuk}
-      totalKeluar={totalKeluar}
-      totalInventory={totalInventory}
-      loading={loading}
-    />
-  </div>
+        <AnimatePresence>
+          {inventory.some((item) => item.jumlah <= 2) && (
+            <div className="md:col-span-1 self-start mt-10">
+              {showLowStock ? (
+                <>
+                  <div className="flex justify-between items-center mb-2">
+                    <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                      Stok Sangat Rendah
+                    </h2>
+                    <button
+                      onClick={() => setShowLowStock(false)}
+                      className="text-xs text-blue-600 hover:underline"
+                    >
+                      Sembunyikan
+                    </button>
+                  </div>
+                  <motion.div
+                    key="low-inventory"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    <LowInventoryPanel
+                      data={inventory.filter((item) => item.jumlah <= 2)}
+                    />
+                  </motion.div>
+                </>
+              ) : (
+                <div
+                  onClick={() => navigate("/inventory?filter=lowstock")}
+                  className="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100 p-4 rounded-2xl shadow-md cursor-pointer transition hover:scale-[1.02]"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">⚠️</span>
+                      <h3 className="font-semibold text-sm">Stok Sangat Rendah</h3>
+                    </div>
+                    <p className="font-bold text-lg">
+                      {inventory.filter((item) => item.jumlah <= 2).length} item
+                    </p>
+                  </div>
+                  <p className="text-xs mt-1 text-red-700 dark:text-red-300">
+                    detail
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </AnimatePresence>
+      </div>
 
- <AnimatePresence>
-  {inventory.some(item => item.jumlah <= 2) && (
-    <div className="md:col-span-1 self-start mt-10">
-      {showLowStock ? (
-        <>
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-              Stok Sangat Rendah
-            </h2>
-            <button
-              onClick={() => setShowLowStock(false)}
-              className="text-xs text-blue-600 hover:underline"
-            >
-              Sembunyikan
-            </button>
-          </div>
-          <motion.div
-            key="low-inventory"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.4 }}
-          >
-            <LowInventoryPanel data={inventory.filter(item => item.jumlah <= 2)} />
-          </motion.div>
-        </>
+      {/* Filter Mode sekarang berada di bawah ringkasan */}
+      <div className="w-full flex justify-center mt-6">
+        <FilterModeSwitch mode={mode} setMode={setMode} />
+      </div>
+
+      {loading ? (
+        <div className="text-center text-gray-500">Loading grafik...</div>
       ) : (
-       <div
-  onClick={() => navigate("/inventory?filter=lowstock")}
-  className="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-100 p-4 rounded-2xl shadow-md cursor-pointer transition hover:scale-[1.02]"
->
-  <div className="flex items-center justify-between">
-    <div className="flex items-center gap-2">
-      <span className="text-xl">⚠️</span>
-      <h3 className="font-semibold text-sm">Stok Sangat Rendah</h3>
-    </div>
-    <p className="font-bold text-lg">
-      {inventory.filter(item => item.jumlah <= 2).length} item
-    </p>
-  </div>
-  <p className="text-xs mt-1 text-red-700 dark:text-red-300">
-    Klik untuk melihat detail
-  </p>
-</div>
+        <>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
+              <AreaChartTrend
+                title={`Trend Barang Masuk (${mode === "weekly" ? "Mingguan" : mode === "monthly" ? "Bulanan" : "Tahunan"})`}
+                data={formatAreaChartData(barangMasuk, mode)}
+              />
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
+              <AreaChartTrend
+                title={`Trend Barang Keluar (${mode === "weekly" ? "Mingguan" : mode === "monthly" ? "Bulanan" : "Tahunan"})`}
+                data={formatAreaChartData(barangKeluar, mode)}
+              />
+            </div>
+          </div>
 
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
+              <ChartPie title="Komposisi Barang Masuk" data={formatDataPie(barangMasuk)} />
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
+              <ChartPie title="Komposisi Barang Keluar" data={formatDataPie(barangKeluar)} />
+            </div>
+          </div>
+        </>
       )}
     </div>
-  )}
-</AnimatePresence>
-
-  
-</div>
-     {loading ? (
-  <div className="text-center text-gray-500">Loading grafik...</div>
-) : (
-  <>
-    <div className="grid md:grid-cols-2 gap-6">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
-        <AreaChartTrend
-          title="Trend Barang Masuk (Bulanan)"
-          data={formatAreaChartData(barangMasuk)}
-        />
-      </div>
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
-        <AreaChartTrend
-          title="Trend Barang Keluar (Bulanan)"
-          data={formatAreaChartData(barangKeluar)}
-        />
-      </div>
-    </div>
-
-    <div className="grid md:grid-cols-2 gap-6">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
-        <ChartPie
-          title="Komposisi Barang Masuk"
-          data={formatDataPie(barangMasuk)}
-        />
-      </div>
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
-        <ChartPie
-          title="Komposisi Barang Keluar"
-          data={formatDataPie(barangKeluar)}
-        />
-      </div>
-    </div>
-  </>
-)}
-
-       </div>
   );
 }
-

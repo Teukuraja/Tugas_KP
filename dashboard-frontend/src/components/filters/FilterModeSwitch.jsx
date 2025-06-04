@@ -1,4 +1,3 @@
-
 /**
  * Komponen FilterModeSwitch untuk memilih mode filter data (bulanan, mingguan, tahunan).
  * Menggunakan framer-motion untuk animasi tombol.
@@ -13,7 +12,7 @@ export default function FilterModeSwitch({ mode, setMode }) {
   ];
 
   return (
-    <div className="flex justify-center mt-6">
+    <div className="w-full flex justify-center">
       <div className="flex items-center space-x-4">
         {modes.map(({ value, label }) => (
           <motion.button
