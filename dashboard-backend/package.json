@@ -1,0 +1,19 @@
+{
+  "name": "dashboard-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.cjs",          
+  "scripts": {
+    "start": "node server.cjs"   
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "multer": "^2.0.1",
+    "sqlite3": "^5.1.7",
+    "xlsx": "^0.18.5"
+  }
+}
