@@ -1,4 +1,3 @@
-const express = require("express");
 // ==== DEPENDENCY ====
 const express  = require("express");
 const multer   = require("multer");
