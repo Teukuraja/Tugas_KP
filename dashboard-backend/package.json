@@ -1,14 +1,11 @@
 {
   "name": "dashboard-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.cjs",          
+  "main": "server.cjs",
   "scripts": {
-    "start": "node server.cjs"   
+    "start": "node server.cjs",
+    "postinstall": "npm rebuild sqlite3 --build-from-source"  
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.1.0",
