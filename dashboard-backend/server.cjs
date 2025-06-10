@@ -4,9 +4,7 @@ const multer   = require("multer");
 const xlsx     = require("xlsx");
 const cors     = require("cors");
 const fs       = require("fs");
-
-// ganti sqlite3 ➜ better-sqlite3
-const Database = require("better-sqlite3");
+const sqlite3  = require("sqlite3").verbose();
 
 // ==== INIT EXPRESS ====
 const app  = express();
@@ -16,7 +14,13 @@ app.use(express.json());
 
 // ==== KONEKSI DATABASE ====
 const DB_PATH = process.env.DB_PATH || "./data.db";
-const db      = new Database(DB_PATH);
+const db      = new sqlite3.Database(DB_PATH, (err) => {
+  if (err) {
+    console.error("❌ Gagal koneksi ke database:", err.message);
+  } else {
+    console.log("✅ Berhasil koneksi ke database:", DB_PATH);
+  }
+});
 
 // --- Wrapper supaya API mirip sqlite3 callback --- //
 ["run", "get", "all"].forEach((m) => {
