@@ -2,12 +2,11 @@
   "name": "dashboard-backend",
   "version": "1.0.0",
   "main": "server.cjs",
-  "scripts": {
-    "start": "node server.cjs",
-    "postinstall": "npm rebuild sqlite3 --build-from-source"
-  },
+  
+  
+  
   "dependencies": {
-    "sqlite3": "^5.1.7",
+    "better-sqlite3": "^11.10.0",
     "express": "^5.1.0",
     "cors": "^2.8.5",
     "multer": "^2.0.1",

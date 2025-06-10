@@ -1,20 +1,43 @@
 const express = require("express");
-const multer = require("multer");
-const xlsx = require("xlsx");
-const cors = require("cors");
-const sqlite3 = require("sqlite3").verbose();
-const fs = require("fs");
-const app = express();
-const PORT = 3001;
+// ==== DEPENDENCY ====
+const express  = require("express");
+const multer   = require("multer");
+const xlsx     = require("xlsx");
+const cors     = require("cors");
+const fs       = require("fs");
 
+// ganti sqlite3 ➜ better-sqlite3
+const Database = require("better-sqlite3");
 
+// ==== INIT EXPRESS ====
+const app  = express();
+const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// ==== KONEKSI DATABASE ====
+const DB_PATH = process.env.DB_PATH || "./data.db";
+const db      = new Database(DB_PATH);
 
-const db = new sqlite3.Database("./data.db", (err) => {
-  if (err) console.error("Database connection error:", err.message);
+// --- Wrapper supaya API mirip sqlite3 callback --- //
+["run", "get", "all"].forEach((m) => {
+  const fn = m === "run"
+    ? (sql, params) => db.prepare(sql).run(params)
+    : m === "get"
+      ? (sql, params) => db.prepare(sql).get(params)
+      : (sql, params) => db.prepare(sql).all(params);
+
+  // override: terima callback seperti versi lama
+  db[m] = (sql, params = [], cb = () => {}) => {
+    try {
+      const result = fn(sql, params);
+      cb(null, result);
+    } catch (err) {
+      cb(err);
+    }
+  };
 });
+
 
 // Membuat tabel users jika belum ada
 db.serialize(() => {
