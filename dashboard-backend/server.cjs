@@ -481,6 +481,6 @@ app.post("/upload-barang-keluar", upload.single("file"), (req, res) => {
   }
 });
 
-app.listen(8080, () => {
-  console.log("Server jalan di http://localhost:8080");
+app.listen(PORT, () => {
+  console.log(`✅ Server jalan di http://localhost:${PORT}`);
 });
