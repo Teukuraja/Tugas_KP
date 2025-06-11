@@ -219,28 +219,6 @@ app.put("/api/barang-masuk/:id", (req, res) => {
   });
 });
 
-
-    // Update barang masuk
-    db.run(
-      `UPDATE barang_masuk SET tanggal = ?, kode = ?, nama = ?, jumlah = ?, satuan = ?, unit = ? WHERE id = ?`,
-      [tanggal, kode, nama, jumlah, satuan, unit, id],
-      function (err) {
-        if (err) {
-          console.error("Error saat mengupdate barang masuk:", err.message);
-          return res.status(500).json({ error: "Gagal mengupdate barang masuk" });
-        }
-
-        // Sinkronisasi inventory
-        syncInventory(kode, nama, deltaJumlah, satuan, unit);
-
-        console.log(`Barang masuk dengan ID ${id} berhasil diupdate`);
-        res.json({ message: "Barang masuk berhasil diupdate" });
-      }
-    );
-
-
-
-
 // Hapus Barang Keluar
 app.delete("/api/barang-keluar/:id", (req, res) => {
   const { id } = req.params;
