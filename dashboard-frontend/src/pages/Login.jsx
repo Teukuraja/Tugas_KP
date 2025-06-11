@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
-import Logo from "../components/assets/logo.png";
+import Logo from "../assets/logo.png";
 import baseURL from "../api";
 export default function Login() {
   const [username, setUsername] = useState("");

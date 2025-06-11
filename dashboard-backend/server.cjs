@@ -404,7 +404,23 @@ app.get("/api/inventory", (req, res) => {
 });
 app.put("/api/inventory/:id", (req, res) => {
   const { id } = req.params;
-  const { tanggal, kode, nama, alias, jumlah, satuan, unit } = req.body;
+  const {
+    tanggal,
+    kode,
+    kode_barang,
+    nama,
+    nama_barang,
+    alias,
+    jumlah,
+    stok,
+    satuan,
+    unit
+  } = req.body;
+
+  // Gunakan nilai yang tersedia, entah dari frontend 1 atau frontend 2
+  const finalKode = kode || kode_barang;
+  const finalNama = nama || nama_barang;
+  const finalJumlah = jumlah ?? stok; // Gunakan jumlah, jika tidak ada pakai stok
 
   db.get("SELECT * FROM inventory WHERE id = ?", [id], (err, oldRow) => {
     if (err) {
@@ -416,36 +432,26 @@ app.put("/api/inventory/:id", (req, res) => {
       return res.status(404).json({ error: "Barang tidak ditemukan di inventory" });
     }
 
-    const deltaJumlah = jumlah - oldRow.jumlah;
-    db.run(`UPDATE inventory SET tanggal = ?, kode = ?, nama = ?, alias = ?, jumlah = ?, satuan = ?, unit = ? WHERE id = ?`,
-      [tanggal, kode, nama, alias, jumlah, satuan, unit, id], function (err) {
+    const deltaJumlah = finalJumlah - oldRow.jumlah;
+
+    db.run(
+      `UPDATE inventory SET tanggal = ?, kode = ?, nama = ?, alias = ?, jumlah = ?, satuan = ?, unit = ? WHERE id = ?`,
+      [tanggal || oldRow.tanggal, finalKode, finalNama, alias || oldRow.alias, finalJumlah, satuan || oldRow.satuan, unit || oldRow.unit, id],
+      function (err) {
         if (err) {
           console.error("Error saat mengupdate inventory:", err.message);
           return res.status(500).json({ error: "Gagal mengupdate inventory" });
         }
 
-        // Sinkronisasi barang masuk atau keluar jika jumlah inventory berubah
-        syncInventory(kode, nama, deltaJumlah, satuan, unit);
+        // Sinkronisasi stok jika jumlah berubah
+        if (deltaJumlah !== 0) {
+          syncInventory(finalKode, finalNama, deltaJumlah, satuan || oldRow.satuan, unit || oldRow.unit);
+        }
+
         res.json({ message: "Barang di inventory berhasil diupdate" });
-      });
-  });
-});
-
-// ✅ Tambahkan di bawah sini
-app.put("/api/inventory/:id", (req, res) => {
-  const { kode_barang, nama_barang, stok } = req.body;
-  const id = req.params.id;
-
-  db.run(
-    `UPDATE inventory SET kode_barang = ?, nama_barang = ?, stok = ? WHERE id = ?`,
-    [kode_barang, nama_barang, stok, id],
-    function (err) {
-      if (err) {
-        return res.status(500).json({ error: "Gagal update inventory: " + err.message });
       }
-      res.json({ message: "Inventory berhasil diperbarui" });
-    }
-  );
+    );
+  });
 });
 
 
