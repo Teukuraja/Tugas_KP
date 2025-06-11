@@ -100,14 +100,22 @@ function syncInventory(kode, nama, delta, satuan, unit) {
   });
 }
 
-// ==== LOGIN ====
 app.post("/api/login", (req, res) => {
   const { username, password } = req.body;
-  if (username === "admin" && password === "admin") {
-    res.json({ success: true, message: "Login berhasil" });
-  } else {
-    res.status(401).json({ success: false, message: "Username atau password salah" });
+  if (!username || !password) {
+    return res.status(400).json({ error: "Username dan password wajib diisi" });
   }
+
+  db.get("SELECT * FROM users WHERE username = ? AND password = ?", [username, password], (err, row) => {
+    if (err) {
+      console.error("Login error:", err.message);
+      return res.status(500).json({ error: "Terjadi kesalahan server" });
+    }
+    if (!row) {
+      return res.status(401).json({ error: "Username atau password salah" });
+    }
+    res.json({ success: true, username: row.username });
+  });
 });
 
 // ========== API ==========
