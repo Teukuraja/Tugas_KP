@@ -11,6 +11,8 @@ import { useLocation } from "react-router-dom";
 import Modal from "../components/ui/Modal";
 import EditInventoryForm from "../components/forms/EditInventoryForm";
 import { useNavigate } from "react-router-dom";
+import baseURL from "../api";
+
 
 export default function InventoryData() {
   const [data, setData] = useState([]);
@@ -27,7 +29,7 @@ export default function InventoryData() {
   const fetchInventory = async () => {
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:3001/api/inventory");
+      const res = await fetch(`${baseURL}/api/inventory`);
       const json = await res.json();
       setData(json);
     } catch (err) {
@@ -44,9 +46,10 @@ export default function InventoryData() {
   const handleDelete = async (id) => {
     if (!window.confirm("Yakin mau hapus data ini?")) return;
     try {
-      const res = await fetch(`http://localhost:3001/api/inventory/${id}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`${baseURL}/api/inventory/${id}`, {
+          method: "DELETE",
+        });
+
       if (!res.ok) throw new Error("Gagal menghapus");
       toast.success("Data berhasil dihapus!");
       fetchInventory();

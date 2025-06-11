@@ -1,4 +1,3 @@
-
 /**
  * Halaman BarangMasuk untuk menampilkan dan mengelola data barang masuk.
  * Menyediakan fitur filter, pencarian, grafik, export, tambah, edit, dan hapus data.
@@ -14,6 +13,8 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { toast } from "react-hot-toast";
+import baseURL from "../api";
+
 
 export default function BarangMasuk({ sidebarOpen }) {
   // State data barang masuk, filter unit, pencarian nama barang
@@ -32,7 +33,7 @@ export default function BarangMasuk({ sidebarOpen }) {
   // Fungsi autocomplete data inventory berdasarkan nama barang
   const fetchInventoryData = async (nama) => {
     try {
-      const res = await fetch("http://localhost:3001/api/inventory");
+      const res = await fetch(`${baseURL}/api/inventory`);
       const inventory = await res.json();
       const match = inventory.find(item => item.nama.toLowerCase() === nama.toLowerCase());
       if (match) {
@@ -52,7 +53,7 @@ export default function BarangMasuk({ sidebarOpen }) {
   const fetchSuggestions = async (nama) => {
     if (!nama) return;
     try {
-      const res = await fetch(`http://localhost:3001/api/inventory`);
+      const res = await fetch(`${baseURL}/api/inventory`);
       const inventory = await res.json();
       const match = inventory.find(item => item.nama.toLowerCase() === nama.toLowerCase() || (item.alias && item.alias.toLowerCase().includes(nama.toLowerCase())));
       if (match) {
@@ -72,7 +73,7 @@ export default function BarangMasuk({ sidebarOpen }) {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const url = `http://localhost:3001/api/barang-masuk${filterUnit !== "Semua Unit" ? `?unit=${encodeURIComponent(filterUnit)}` : ""}`;
+      const url = `${baseURL}/api/barang-masuk${filterUnit !== "Semua Unit" ? `?unit=${encodeURIComponent(filterUnit)}` : ""}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error("Gagal mengambil data");
       const result = await res.json();
@@ -145,7 +146,7 @@ export default function BarangMasuk({ sidebarOpen }) {
         ...formData,
         unit: formData.unit.trim() === "" ? "Tanpa Unit" : formData.unit.trim()
       };
-      const res = await fetch(`http://localhost:3001/api/barang-masuk${editId ? `/${editId}` : ""}`, {
+      const res = await fetch(`${baseURL}/api/barang-masuk${editId ? `/${editId}` : ""}`, {
         method: editId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -175,7 +176,7 @@ export default function BarangMasuk({ sidebarOpen }) {
     if (!confirm("Yakin mau hapus barang ini?")) return;
     const toastId = toast.loading("Menghapus barang...");
     try {
-      const res = await fetch(`http://localhost:3001/api/barang-masuk/${id}`, { method: "DELETE" });
+      const res = await fetch(`${baseURL}/api/barang-masuk/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Gagal hapus barang");
       toast.success("Barang berhasil dihapus!", { id: toastId });
       fetchData();

@@ -1,16 +1,26 @@
 // ==== DEPENDENCY ====
-const express  = require("express");
-const multer   = require("multer");
-const xlsx     = require("xlsx");
-const cors     = require("cors");
-const fs       = require("fs");
-const sqlite3  = require("sqlite3").verbose();
+const express = require("express");
+const multer = require("multer");
+const xlsx = require("xlsx");
+const cors = require("cors");
+const fs = require("fs");
+const sqlite3 = require("sqlite3").verbose();
 
-// ==== INIT EXPRESS ====
-const app  = express();
+// Tambahkan baris ini setelah deklarasi `app`
+const app = express();              // ✅ <-- WAJIB ini dulu
 const PORT = process.env.PORT || 3001;
-app.use(cors());
+
+// ✅ Baru setelah itu aktifkan CORS
+app.use(cors({
+  origin: "https://classy-gumption-67c9e2.netlify.app",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type"]
+}));
+
+// ✅ Middleware parsing JSON
 app.use(express.json());
+
+
 
 // ==== KONEKSI DATABASE ====
 const DB_PATH = process.env.DB_PATH || "./data.db";
@@ -77,16 +87,7 @@ db.serialize(() => {
 app.delete("/api/barang-masuk/:id", (req, res) => {
   const { id } = req.params;
 
-  // Ambil data barang masuk sebelum dihapus
-  db.get("SELECT kode, nama, jumlah, satuan, unit FROM barang_masuk WHERE id = ?", [id], (err, row) => {
-    if (err) {
-      console.error("Error saat mengambil barang masuk sebelum hapus:", err.message);
-      return res.status(500).json({ error: "Gagal mengambil data barang masuk" });
-    }
-
-    if (!row) {
-      return res.status(404).json({ error: "Barang masuk tidak ditemukan" });
-    }
+  
 
     // Hapus semua barang keluar terkait sebelum menghapus barang masuk
     db.run("DELETE FROM barang_keluar WHERE kode = ? AND unit = ?", [row.kode, row.unit], function (err) {
@@ -349,16 +350,7 @@ app.get("/api/barang-keluar", (req, res) => {
     query += " WHERE unit = ?";
     params.push(unit);
   }
-  db.all(query, params, (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
-});
-// Edit Barang Masuk
-app.put("/api/barang-masuk/:id", (req, res) => {
-  const { id } = req.params;
-  const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
-
+  
   // Ambil data barang masuk sebelum diupdate
   db.get("SELECT kode, nama, jumlah, satuan, unit FROM barang_masuk WHERE id = ?", [id], (err, oldRow) => {
     if (err) {

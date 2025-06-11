@@ -14,6 +14,8 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { toast } from "react-hot-toast";
+import baseURL from "../api"; 
+
 
 export default function BarangKeluar() {
   // State data barang keluar,filter unit,  pencarian nama barang
@@ -31,7 +33,7 @@ export default function BarangKeluar() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      let url = "http://localhost:3001/api/barang-keluar";
+      let url = `${baseURL}/api/barang-keluar`;
       if (filterUnit !== "Semua Unit") url += `?unit=${encodeURIComponent(filterUnit)}`;
       const res = await fetch(url);
       const result = await res.json();
@@ -51,7 +53,7 @@ export default function BarangKeluar() {
   // Fungsi untuk autocomplete data inventory berdasarkan nama barang
   const fetchInventoryData = async (nama) => {
     try {
-      const res = await fetch("http://localhost:3001/api/inventory");
+      const res = await fetch(`${baseURL}/api/inventory`);
       const inventory = await res.json();
       const match = inventory.find(item => item.nama.toLowerCase() === nama.toLowerCase() || (item.alias && item.alias.toLowerCase().includes(nama.toLowerCase())));
       if (match) {
@@ -120,7 +122,7 @@ export default function BarangKeluar() {
         ...formData,
         unit: formData.unit.trim() === "" ? "Tanpa Unit" : formData.unit.trim()
       };
-      const res = await fetch(`http://localhost:3001/api/barang-keluar${editId ? `/${editId}` : ""}`, {
+       const res = await fetch(`${baseURL}/api/barang-keluar${editId ? `/${editId}` : ""}`, {
         method: editId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -135,7 +137,7 @@ export default function BarangKeluar() {
       setModalOpen(false);
       fetchData();
 
-      await fetch(`http://localhost:3001/api/sync-inventory`, {
+       await fetch(`${baseURL}/api/sync-inventory`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kode: formData.kode, jumlah: -formData.jumlah, unit: formData.unit })
@@ -160,7 +162,7 @@ export default function BarangKeluar() {
     if (!confirm("Yakin mau hapus barang ini?")) return;
     const toastId = toast.loading("Menghapus barang...");
     try {
-      const res = await fetch(`http://localhost:3001/api/barang-keluar/${id}`, { method: "DELETE" });
+      const res = await fetch(`${baseURL}/api/barang-keluar/${id}`, { method: "DELETE" });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.message || "Gagal hapus barang");

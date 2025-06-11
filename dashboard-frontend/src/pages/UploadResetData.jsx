@@ -3,6 +3,8 @@ import UploadForm from "../components/forms/UploadForm";
 import Button from "../components/ui/Button";
 import { toast } from "react-hot-toast";
 import axios from "axios";
+import baseURL from "../api";
+
 
 export default function UploadResetData() {
   const [resetting, setResetting] = useState(false);
@@ -13,7 +15,7 @@ export default function UploadResetData() {
 
     try {
       setResetting(true);
-      await axios.post("http://localhost:3001/reset-data");
+      await axios.post(`${baseURL}/reset-data`);
       toast.success("Semua data berhasil direset!");
     } catch (err) {
       toast.error("Gagal mereset data!");

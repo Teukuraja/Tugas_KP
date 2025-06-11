@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
 import Logo from "../assets/logo.png";
+import baseURL from "../api";
+
 
 export default function Login() {
   const [username, setUsername] = useState("");
@@ -16,7 +18,7 @@ export default function Login() {
   e.preventDefault();
 
   try {
-    const response = await fetch("http://localhost:3001/api/login", {
+    const response = await fetch(`${baseURL}/api/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),

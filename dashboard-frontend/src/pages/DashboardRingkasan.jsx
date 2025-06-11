@@ -12,6 +12,8 @@ import SummaryCards from "../components/ui/SummaryCards";
 import ChartPie from "../components/charts/ChartPie";
 import AreaChartTrend from "../components/charts/AreaChartTrend";
 import FilterModeSwitch from "../components/filters/FilterModeSwitch";
+import baseURL from "../api";
+
 
 export default function DashboardRingkasan() {
   const location = useLocation();
@@ -44,10 +46,11 @@ export default function DashboardRingkasan() {
     try {
       setLoading(true);
       const [masukRes, keluarRes, invRes] = await Promise.all([
-        fetch("http://localhost:3001/api/barang-masuk"),
-        fetch("http://localhost:3001/api/barang-keluar"),
-        fetch("http://localhost:3001/api/inventory"),
+        fetch(`${baseURL}/api/barang-masuk`),
+        fetch(`${baseURL}/api/barang-keluar`),
+        fetch(`${baseURL}/api/inventory`),
       ]);
+
       const [masukData, keluarData, invData] = await Promise.all([
         masukRes.json(),
         keluarRes.json(),
