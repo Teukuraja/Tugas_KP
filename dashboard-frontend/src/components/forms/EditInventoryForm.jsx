@@ -1,22 +1,28 @@
 import { useState } from "react";
 import Button from "../ui/Button";
 import { toast } from "react-hot-toast";
-import baseURL from "../../api"; 
+import baseURL from "../../api";
+
+// === Komponen EditInventoryForm untuk form edit data inventory ===
 export default function EditInventoryForm({ item, onClose, onUpdated }) {
+  // State form dengan nilai awal dari item
   const [formData, setFormData] = useState({
     tanggal: item.tanggal,
     kode: item.kode,
     nama: item.nama,
+    alias: item.alias || "",
     jumlah: item.jumlah,
     satuan: item.satuan,
     unit: item.unit,
   });
 
+  // Handler perubahan input form
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Handler submit form untuk update data ke server
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {

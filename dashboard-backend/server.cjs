@@ -81,58 +81,47 @@ function convertExcelDate(excelDate) {
   return !isNaN(parsed.getTime()) ? parsed.toISOString().split("T")[0] : "";
 }
 
-function syncInventory(kode, nama, jumlahBaru, satuan, unit) {
+function syncInventory(kode, nama, satuan, unit) {
   const today = new Date().toISOString().split("T")[0];
 
-  if (!db) {
-    console.error("Database tidak tersedia.");
-    return;
-  }
+  const queryMasuk = `SELECT SUM(jumlah) AS totalMasuk FROM barang_masuk WHERE kode = ? AND unit = ?`;
+  const queryKeluar = `SELECT SUM(jumlah) AS totalKeluar FROM barang_keluar WHERE kode = ? AND unit = ?`;
 
-  db.get(`SELECT * FROM inventory WHERE kode = ? AND unit = ?`, [kode, unit], (err, row) => {
+  db.get(queryMasuk, [kode, unit], (err, masuk) => {
     if (err) {
-      console.error("Error saat membaca data inventory:", err.message);
+      console.error("Error menghitung barang masuk:", err.message);
       return;
     }
 
-    if (row) {
-      if (jumlahBaru > 0) {
-        db.run(
-          `UPDATE inventory SET jumlah = ?, tanggal = ?, nama = ?, satuan = ? WHERE id = ?`,
-          [jumlahBaru, today, nama, satuan, row.id],
-          (err) => {
-            if (err) {
-              console.error("Error saat mengupdate inventory:", err.message);
-            } else {
-              console.log(`Barang dengan kode ${kode} berhasil diperbarui di inventory.`);
-            }
-          }
-        );
-      } else {
-        db.run(`DELETE FROM inventory WHERE id = ?`, [row.id], (err) => {
-          if (err) {
-            console.error("Error saat menghapus barang dari inventory:", err.message);
+    db.get(queryKeluar, [kode, unit], (err, keluar) => {
+      if (err) {
+        console.error("Error menghitung barang keluar:", err.message);
+        return;
+      }
+
+      const jumlahMasuk = masuk?.totalMasuk || 0;
+      const jumlahKeluar = keluar?.totalKeluar || 0;
+      const jumlahAkhir = jumlahMasuk - jumlahKeluar;
+
+      if (jumlahAkhir > 0) {
+        // Update atau insert inventory
+        db.get("SELECT * FROM inventory WHERE kode = ? AND unit = ?", [kode, unit], (err, row) => {
+          if (row) {
+            db.run(`UPDATE inventory SET jumlah = ?, tanggal = ?, nama = ?, satuan = ? WHERE id = ?`,
+              [jumlahAkhir, today, nama, satuan, row.id]);
           } else {
-            console.log(`Barang dengan kode ${kode} berhasil dihapus dari inventory.`);
+            db.run(`INSERT INTO inventory (tanggal, kode, nama, jumlah, satuan, unit) VALUES (?, ?, ?, ?, ?, ?)`,
+              [today, kode, nama, jumlahAkhir, satuan, unit]);
           }
         });
+      } else {
+        // Hapus dari inventory jika jumlah 0 atau negatif
+        db.run("DELETE FROM inventory WHERE kode = ? AND unit = ?", [kode, unit]);
       }
-    } else if (jumlahBaru > 0) {
-      db.run(
-        `INSERT INTO inventory (tanggal, kode, nama, jumlah, satuan, unit)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [today, kode, nama, jumlahBaru, satuan, unit],
-        (err) => {
-          if (err) {
-            console.error("Error saat menambah barang ke inventory:", err.message);
-          } else {
-            console.log(`Barang dengan kode ${kode} berhasil ditambahkan ke inventory.`);
-          }
-        }
-      );
-    }
+    });
   });
 }
+
 
 
 app.post("/api/login", (req, res) => {

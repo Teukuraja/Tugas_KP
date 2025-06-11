@@ -1,5 +1,6 @@
-
 import { useState } from "react";
+import { toast } from "react-hot-toast"; // Optional, bisa dihapus jika tidak pakai
+import baseURL from "../../api";
 
 // === Komponen FormInventory untuk form input data inventory ===
 export default function FormInventory({ onSubmit, onClose, initialData = {} }) {
@@ -19,11 +20,25 @@ export default function FormInventory({ onSubmit, onClose, initialData = {} }) {
     setForm({ ...form, [name]: value });
   };
 
-  // Handler submit form
-  const handleSubmit = (e) => {
+  // Handler submit form: langsung kirim ke server
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit(form);
-    setForm({ tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: "" });
+    try {
+      const res = await fetch(`${baseURL}/api/inventory`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error("Gagal menambahkan data");
+
+      toast.success("Data berhasil ditambahkan!");
+      setForm({ tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: "" });
+
+      if (onSubmit) onSubmit(); // Notify parent jika diperlukan
+      onClose();
+    } catch (err) {
+      toast.error("Gagal menyimpan data!");
+    }
   };
 
   return (
@@ -115,4 +130,3 @@ export default function FormInventory({ onSubmit, onClose, initialData = {} }) {
     </form>
   );
 }
- 
