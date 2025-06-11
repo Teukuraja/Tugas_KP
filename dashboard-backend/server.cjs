@@ -89,12 +89,23 @@ app.delete("/api/barang-masuk/:id", (req, res) => {
 
   
 
-    // Hapus semua barang keluar terkait sebelum menghapus barang masuk
-    db.run("DELETE FROM barang_keluar WHERE kode = ? AND unit = ?", [row.kode, row.unit], function (err) {
-      if (err) {
-        console.error("Error saat menghapus barang keluar terkait:", err.message);
-      }
+   db.get("SELECT * FROM barang_masuk WHERE id = ?", [id], (err, row) => {
+  if (err || !row) {
+    return res.status(404).json({ error: "Data barang masuk tidak ditemukan" });
+  }
+
+  db.run("DELETE FROM barang_keluar WHERE kode = ? AND unit = ?", [row.kode, row.unit], function (err) {
+    if (err) return res.status(500).json({ error: "Gagal hapus barang keluar terkait" });
+
+    db.run("DELETE FROM barang_masuk WHERE id = ?", [id], function (err) {
+      if (err) return res.status(500).json({ error: "Gagal hapus barang masuk" });
+
+      syncInventory(row.kode, row.nama, -row.jumlah, row.satuan, row.unit);
+      res.json({ message: "Barang masuk dan keluar terkait berhasil dihapus" });
     });
+  });
+});
+
 
     // Hapus barang masuk
     db.run("DELETE FROM barang_masuk WHERE id = ?", [id], function (err) {
@@ -352,7 +363,6 @@ app.get("/api/barang-keluar", (req, res) => {
   }
   
   // Ambil data barang masuk sebelum diupdate
-  db.get("SELECT kode, nama, jumlah, satuan, unit FROM barang_masuk WHERE id = ?", [id], (err, oldRow) => {
     if (err) {
       console.error("Error saat mengambil data barang masuk sebelum update:", err.message);
       return res.status(500).json({ error: "Gagal mengambil data barang masuk" });
@@ -383,7 +393,7 @@ app.get("/api/barang-keluar", (req, res) => {
       }
     );
   });
-});
+
 
 
 // Hapus Barang Keluar
