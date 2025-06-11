@@ -17,7 +17,8 @@ import DashboardRingkasan from "./pages/DashboardRingkasan";
 import UploadResetData from "./pages/UploadResetData";
 import Login from "./pages/Login";
 import InventoryData from "./pages/InventoryData";
-import Logo from "./components/assets/logo.png";
+import logo from "./assets/logo.png"; // untuk App.jsx (karena berada langsung di dalam src/)
+
 
 
 export default function App() {
