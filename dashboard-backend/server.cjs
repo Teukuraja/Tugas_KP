@@ -219,8 +219,6 @@ app.put("/api/barang-masuk/:id", (req, res) => {
   });
 });
 
-    // Hitung delta jumlah untuk sinkronisasi inventory
-    const deltaJumlah = jumlah - oldRow.jumlah;
 
     // Update barang masuk
     db.run(
