@@ -158,7 +158,7 @@ app.put("/api/barang-masuk/:id", (req, res) => {
       res.json({ message: "Barang masuk dan barang keluar terkait berhasil dihapus" });
     });
   });
-});
+
 
 
 // Edit Barang Inventory
