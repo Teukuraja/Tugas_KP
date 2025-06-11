@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { Eye, EyeOff } from "lucide-react";
-import Logo from "../assets/logo.png";
+import Logo from "../components/assets/logo.png";
 import baseURL from "../api";
 
 
@@ -14,81 +14,48 @@ export default function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
- const handleLogin = async (e) => {
-  e.preventDefault();
+  const handleLogin = async (e) => {
+    e.preventDefault();
 
-  try {
-    const response = await fetch(`${baseURL}/api/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
+    try {
+      const response = await fetch(`${baseURL}/api/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
 
-    const handleLogin = async (e) => {
-  e.preventDefault();
+      const contentType = response.headers.get("content-type");
 
-  try {
-    const response = await fetch(`${baseURL}/api/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-
-    const contentType = response.headers.get("content-type");
-
-    if (!response.ok || !contentType?.includes("application/json")) {
-      const text = await response.text();
-      console.error("❌ Login gagal, bukan JSON:", text);
-      throw new Error("Server mengembalikan respons tidak valid.");
-    }
-
-    const data = await response.json();
-
-    if (data.success) {
-      if (rememberMe) {
-        localStorage.setItem("isLoggedIn", "true");
-      } else {
-        sessionStorage.setItem("isLoggedIn", "true");
+      if (!response.ok || !contentType?.includes("application/json")) {
+        const text = await response.text();
+        console.error("❌ Login gagal, bukan JSON:", text);
+        throw new Error("Server mengembalikan respons tidak valid.");
       }
 
-      toast.success("Login berhasil! 🚀");
-      setTimeout(() => navigate("/dashboard"), 100);
-    } else {
-      setError(data.message);
-      toast.error("Username atau password salah!");
-    }
-  } catch (error) {
-    setError("Login gagal, server tidak merespon!");
-    toast.error("Gagal terhubung ke server!");
-  }
-};
+      const data = await response.json();
 
+      if (data.success) {
+        if (rememberMe) {
+          localStorage.setItem("isLoggedIn", "true");
+        } else {
+          sessionStorage.setItem("isLoggedIn", "true");
+        }
 
-    if (data.success) {
-      if (rememberMe) {
-        localStorage.setItem("isLoggedIn", "true");
+        toast.success("Login berhasil! 🚀");
+        setTimeout(() => navigate("/dashboard"), 100);
       } else {
-        sessionStorage.setItem("isLoggedIn", "true");
+        setError(data.message || "Username atau password salah!");
+        toast.error("Username atau password salah!");
       }
-
-      toast.success("Login berhasil! 🚀");
-
-      // Tambahkan jeda 100ms agar penyimpanan selesai sebelum navigate
-      setTimeout(() => navigate("/dashboard"), 100);
-    } else {
-      setError(data.message);
-      toast.error("Username atau password salah!");
+    } catch (error) {
+      setError("Login gagal, server tidak merespon!");
+      toast.error("Gagal terhubung ke server!");
     }
-  } catch (error) {
-    setError("Login gagal, server tidak merespon!");
-    toast.error("Gagal terhubung ke server!");
-  }
-};
+  };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-blue-400 via-blue-500 to-blue-700">
       <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 flex flex-col items-center animate-fade-in">
-
         <img src={Logo} alt="Logo Perusahaan" className="w-24 h-24 mb-6 object-contain" />
         <h1 className="text-3xl font-bold text-center mb-2 dark:text-white">Login Admin</h1>
         <p className="text-center text-gray-500 dark:text-gray-400 mb-6 text-sm">Selamat datang kembali! 👋</p>
@@ -106,7 +73,7 @@ export default function Login() {
             className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-400 focus:outline-none dark:bg-gray-700 dark:text-white"
             required
           />
-          
+
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}

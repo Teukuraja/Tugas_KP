@@ -227,6 +227,36 @@ app.put("/api/barang-masuk/:id", (req, res) => {
   });
 });
 
+app.put("/api/barang-keluar/:id", (req, res) => {
+  const { id } = req.params;
+  const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
+
+  db.get("SELECT * FROM barang_keluar WHERE id = ?", [id], (err, oldRow) => {
+    if (err) {
+      console.error("Error saat mengambil data barang keluar sebelum update:", err.message);
+      return res.status(500).json({ error: "Gagal mengambil data barang keluar" });
+    }
+
+    if (!oldRow) {
+      return res.status(404).json({ error: "Barang keluar tidak ditemukan" });
+    }
+
+    const deltaJumlah = jumlah - oldRow.jumlah;
+    db.run(`UPDATE barang_keluar SET tanggal = ?, kode = ?, nama = ?, jumlah = ?, satuan = ?, unit = ? WHERE id = ?`,
+      [tanggal, kode, nama, jumlah, satuan, unit, id], function (err) {
+        if (err) {
+          console.error("Error saat mengupdate barang keluar:", err.message);
+          return res.status(500).json({ error: "Gagal mengupdate barang keluar" });
+        }
+
+        // Sinkronisasi inventory jika jumlah barang keluar berubah
+        syncInventory(kode, nama, deltaJumlah, satuan, unit);
+        res.json({ message: "Barang keluar berhasil diupdate" });
+      });
+  });
+});
+
+
 // Hapus Barang Keluar
 app.delete("/api/barang-keluar/:id", (req, res) => {
   const { id } = req.params;
@@ -337,6 +367,37 @@ app.get("/api/inventory", (req, res) => {
     res.json(rows);
   });
 });
+// edit barang di inventory
+app.put("/api/inventory/:id", (req, res) => {
+  const { id } = req.params;
+  const { tanggal, kode, nama, alias, jumlah, satuan, unit } = req.body;
+
+  db.get("SELECT * FROM inventory WHERE id = ?", [id], (err, oldRow) => {
+    if (err) {
+      console.error("Error saat mengambil data inventory sebelum update:", err.message);
+      return res.status(500).json({ error: "Gagal mengambil data inventory" });
+    }
+
+    if (!oldRow) {
+      return res.status(404).json({ error: "Barang tidak ditemukan di inventory" });
+    }
+
+    const deltaJumlah = jumlah - oldRow.jumlah;
+    db.run(`UPDATE inventory SET tanggal = ?, kode = ?, nama = ?, alias = ?, jumlah = ?, satuan = ?, unit = ? WHERE id = ?`,
+      [tanggal, kode, nama, alias, jumlah, satuan, unit, id], function (err) {
+        if (err) {
+          console.error("Error saat mengupdate inventory:", err.message);
+          return res.status(500).json({ error: "Gagal mengupdate inventory" });
+        }
+
+        // Sinkronisasi barang masuk atau keluar jika jumlah inventory berubah
+        syncInventory(kode, nama, deltaJumlah, satuan, unit);
+        res.json({ message: "Barang di inventory berhasil diupdate" });
+      });
+  });
+});
+
+
 // Hapus Barang dari Inventory
 app.delete("/api/inventory/:id", (req, res) => {
   const { id } = req.params;
@@ -364,6 +425,7 @@ app.delete("/api/inventory/:id", (req, res) => {
     });
   });
 });
+
 
 
 app.post("/reset-data", (req, res) => {

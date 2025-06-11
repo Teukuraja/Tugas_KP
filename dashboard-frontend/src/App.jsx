@@ -17,7 +17,9 @@ import DashboardRingkasan from "./pages/DashboardRingkasan";
 import UploadResetData from "./pages/UploadResetData";
 import Login from "./pages/Login";
 import InventoryData from "./pages/InventoryData";
-import Logo from "./assets/logo.png";
+import Logo from "./components/assets/logo.png";
+
+
 
 export default function App() {
   // State untuk mengatur sidebar terbuka atau tertutup
@@ -29,9 +31,9 @@ export default function App() {
   const navigate = useNavigate();
 
   // Cek status login dari localStorage atau sessionStorage
-  const isLoggedIn =
-    localStorage.getItem("isLoggedIn") === "true" ||
-    sessionStorage.getItem("isLoggedIn") === "true";
+  const isLoggedIn = () =>
+  localStorage.getItem("isLoggedIn") === "true" ||
+  sessionStorage.getItem("isLoggedIn") === "true";
 
   // Daftar item navigasi sidebar
   const navItems = [
@@ -90,7 +92,7 @@ export default function App() {
   };
 
   // Redirect ke login jika belum login dan bukan di halaman login
-  if (!isLoggedIn && location.pathname !== "/login") {
+  if (!isLoggedIn() && location.pathname !== "/login") {
     return <Navigate to="/login" replace />;
   }
 
