@@ -43,32 +43,40 @@ export default function DashboardRingkasan() {
   }, [navigate, location.search]);
 
   const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [masukRes, keluarRes, invRes] = await Promise.all([
-        fetch(`${baseURL}/api/barang-masuk`),
-        fetch(`${baseURL}/api/barang-keluar`),
-        fetch(`${baseURL}/api/inventory`),
-      ]);
+  try {
+    setLoading(true);
 
-      const [masukData, keluarData, invData] = await Promise.all([
-        masukRes.json(),
-        keluarRes.json(),
-        invRes.json(),
-      ]);
+    const endpoints = [
+      `${baseURL}/api/barang-masuk`,
+      `${baseURL}/api/barang-keluar`,
+      `${baseURL}/api/inventory`,
+    ];
 
-      setBarangMasuk(masukData);
-      setBarangKeluar(keluarData);
-      setInventory(invData);
+    const responses = await Promise.all(
+      endpoints.map((url) => fetch(url).then(async (res) => {
+        const contentType = res.headers.get("content-type");
+        if (!res.ok || !contentType?.includes("application/json")) {
+          const text = await res.text();
+          console.error(`❌ Error dari ${url}:`, text);
+          throw new Error(`Gagal fetch dari ${url}`);
+        }
+        return res.json();
+      }))
+    );
 
-      toast.success("Data berhasil dimuat! 🚀");
-    } catch (error) {
-      console.error("Gagal mengambil data:", error);
-      toast.error("Gagal mengambil data! 🚨");
-    } finally {
-      setLoading(false);
-    }
-  };
+    setBarangMasuk(Array.isArray(responses[0]) ? responses[0] : []);
+    setBarangKeluar(Array.isArray(responses[1]) ? responses[1] : []);
+    setInventory(Array.isArray(responses[2]) ? responses[2] : []);
+
+    toast.success("Data berhasil dimuat! 🚀");
+  } catch (error) {
+    console.error("❌ Gagal mengambil data:", error.message);
+    toast.error("Gagal mengambil data! 🚨");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const totalMasuk = barangMasuk.reduce((sum, item) => sum + item.jumlah, 0);
   const totalKeluar = barangKeluar.reduce((sum, item) => sum + item.jumlah, 0);

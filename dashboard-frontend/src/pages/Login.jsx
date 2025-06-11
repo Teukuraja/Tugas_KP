@@ -24,7 +24,45 @@ export default function Login() {
       body: JSON.stringify({ username, password }),
     });
 
+    const handleLogin = async (e) => {
+  e.preventDefault();
+
+  try {
+    const response = await fetch(`${baseURL}/api/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+
+    const contentType = response.headers.get("content-type");
+
+    if (!response.ok || !contentType?.includes("application/json")) {
+      const text = await response.text();
+      console.error("❌ Login gagal, bukan JSON:", text);
+      throw new Error("Server mengembalikan respons tidak valid.");
+    }
+
     const data = await response.json();
+
+    if (data.success) {
+      if (rememberMe) {
+        localStorage.setItem("isLoggedIn", "true");
+      } else {
+        sessionStorage.setItem("isLoggedIn", "true");
+      }
+
+      toast.success("Login berhasil! 🚀");
+      setTimeout(() => navigate("/dashboard"), 100);
+    } else {
+      setError(data.message);
+      toast.error("Username atau password salah!");
+    }
+  } catch (error) {
+    setError("Login gagal, server tidak merespon!");
+    toast.error("Gagal terhubung ke server!");
+  }
+};
+
 
     if (data.success) {
       if (rememberMe) {

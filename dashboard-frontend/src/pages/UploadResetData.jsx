@@ -15,7 +15,27 @@ export default function UploadResetData() {
 
     try {
       setResetting(true);
-      await axios.post(`${baseURL}/reset-data`);
+      const handleResetData = async () => {
+  const konfirmasi = confirm("Yakin ingin mereset semua data?");
+  if (!konfirmasi) return;
+
+  try {
+    setResetting(true);
+    const response = await axios.post(`${baseURL}/reset-data`);
+
+    if (response.status !== 200 || response.data?.success !== true) {
+      throw new Error("Respon server tidak valid");
+    }
+
+    toast.success("Semua data berhasil direset!");
+  } catch (err) {
+    console.error("❌ Gagal reset:", err.message);
+    toast.error("Gagal mereset data!");
+  } finally {
+    setResetting(false);
+  }
+};
+
       toast.success("Semua data berhasil direset!");
     } catch (err) {
       toast.error("Gagal mereset data!");

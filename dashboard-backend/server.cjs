@@ -106,22 +106,13 @@ app.delete("/api/barang-masuk/:id", (req, res) => {
   });
 });
 
-
     // Hapus barang masuk
     db.run("DELETE FROM barang_masuk WHERE id = ?", [id], function (err) {
       if (err) {
         console.error("Error saat menghapus barang masuk:", err.message);
         return res.status(500).json({ error: "Gagal menghapus barang masuk" });
       }
-      
-      
-
-
-
-
-
-
-      // Edit Barang Masuk
+            // Edit Barang Masuk
 app.put("/api/barang-masuk/:id", (req, res) => {
   const { id } = req.params;
   const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
@@ -361,6 +352,16 @@ app.get("/api/barang-keluar", (req, res) => {
     query += " WHERE unit = ?";
     params.push(unit);
   }
+
+  db.all(query, params, (err, rows) => {
+    if (err) {
+      console.error("❌ Gagal mengambil data barang keluar:", err.message);
+      return res.status(500).json({ error: "Gagal mengambil data" });
+    }
+    res.json(rows);
+  });
+});
+
   
   // Ambil data barang masuk sebelum diupdate
     if (err) {
@@ -392,7 +393,7 @@ app.get("/api/barang-keluar", (req, res) => {
         res.json({ message: "Barang masuk berhasil diupdate" });
       }
     );
-  });
+
 
 
 

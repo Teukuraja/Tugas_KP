@@ -29,21 +29,47 @@ export default function BarangKeluar() {
   const [editId, setEditId] = useState(null);
   const [formData, setFormData] = useState({ tanggal: "", kode: "", nama: "", jumlah: "", satuan: "", unit: "" });
 
-  // Fungsi untuk mengambil data barang keluar dari API
   const fetchData = async () => {
-    try {
-      setLoading(true);
-      let url = `${baseURL}/api/barang-keluar`;
-      if (filterUnit !== "Semua Unit") url += `?unit=${encodeURIComponent(filterUnit)}`;
-      const res = await fetch(url);
-      const result = await res.json();
-      setData(result);
-    } catch {
-      toast.error("Gagal mengambil data");
-    } finally {
-      setLoading(false);
+  try {
+    setLoading(true);
+    let url = `${baseURL}/api/barang-keluar`;
+    if (filterUnit !== "Semua Unit") {
+      url += `?unit=${encodeURIComponent(filterUnit)}`;
     }
-  };
+
+    const res = await fetch(url);
+    const contentType = res.headers.get("content-type");
+
+    // Cek jika request gagal
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("❌ Server error:", text);
+      throw new Error("Gagal fetch data dari server");
+    }
+
+    // Cek jika bukan JSON
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await res.text();
+      console.error("❌ Respon bukan JSON:", text);
+      throw new Error("Respon server tidak valid (bukan JSON)");
+    }
+
+    const result = await res.json();
+
+    // Pastikan hasilnya array
+    if (!Array.isArray(result)) {
+      console.error("❌ Data bukan array:", result);
+      throw new Error("Data yang diterima tidak dalam format array");
+    }
+
+    setData(result);
+  } catch (error) {
+    console.error("❌ fetchData error:", error.message);
+    toast.error("Gagal mengambil data: " + error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // useEffect untuk fetch data saat filter unit berubah
   useEffect(() => {

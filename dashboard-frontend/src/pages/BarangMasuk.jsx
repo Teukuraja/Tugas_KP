@@ -69,22 +69,42 @@ export default function BarangMasuk({ sidebarOpen }) {
     }
   };
 
-  // Fungsi mengambil data barang masuk dari API
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const url = `${baseURL}/api/barang-masuk${filterUnit !== "Semua Unit" ? `?unit=${encodeURIComponent(filterUnit)}` : ""}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Gagal mengambil data");
-      const result = await res.json();
-      setData(result);
-      setError("");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+ const fetchData = async () => {
+  try {
+    setLoading(true);
+    const url = `${baseURL}/api/barang-masuk${filterUnit !== "Semua Unit" ? `?unit=${encodeURIComponent(filterUnit)}` : ""}`;
+    const res = await fetch(url);
+    const contentType = res.headers.get("content-type");
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("❌ Server error:", text);
+      throw new Error("Gagal fetch data dari server");
     }
-  };
+
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await res.text();
+      console.error("❌ Respon bukan JSON:", text);
+      throw new Error("Respon server tidak valid (bukan JSON)");
+    }
+
+    const result = await res.json();
+
+    if (!Array.isArray(result)) {
+      console.error("❌ Data bukan array:", result);
+      throw new Error("Format data tidak sesuai");
+    }
+
+    setData(result);
+    setError("");
+  } catch (err) {
+    console.error("❌ fetchData error:", err.message);
+    setError(err.message);
+    toast.error("Gagal mengambil data: " + err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // useEffect untuk fetch data saat filter unit berubah
   useEffect(() => { fetchData(); }, [filterUnit]);

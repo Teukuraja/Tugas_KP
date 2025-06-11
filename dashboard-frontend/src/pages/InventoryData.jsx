@@ -26,18 +26,33 @@ export default function InventoryData() {
   const [selectedItem, setSelectedItem] = useState(null);
   const navigate = useNavigate();
 
-  const fetchInventory = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(`${baseURL}/api/inventory`);
-      const json = await res.json();
-      setData(json);
-    } catch (err) {
-      toast.error("Gagal mengambil data inventory");
-    } finally {
-      setLoading(false);
+ const fetchInventory = async () => {
+  try {
+    setLoading(true);
+    const res = await fetch(`${baseURL}/api/inventory`);
+    const contentType = res.headers.get("content-type");
+
+    if (!res.ok || !contentType?.includes("application/json")) {
+      const text = await res.text();
+      console.error("❌ Error dari /api/inventory:", text);
+      throw new Error("Gagal fetch inventory");
     }
-  };
+
+    const json = await res.json();
+
+    if (!Array.isArray(json)) {
+      console.error("❌ Data inventory bukan array:", json);
+      throw new Error("Format data inventory tidak valid");
+    }
+
+    setData(json);
+  } catch (err) {
+    console.error("❌ fetchInventory error:", err.message);
+    toast.error("Gagal mengambil data inventory: " + err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchInventory();
