@@ -6,184 +6,43 @@ const cors = require("cors");
 const fs = require("fs");
 const sqlite3 = require("sqlite3").verbose();
 
-// Tambahkan baris ini setelah deklarasi `app`
-const app = express();              // ✅ <-- WAJIB ini dulu
+const app = express();
 const PORT = process.env.PORT || 3001;
 
-// ✅ Baru setelah itu aktifkan CORS
+// ✅ Middleware untuk menerima upload file
+const upload = multer({ dest: "uploads/" });
+
+
+// ==== MIDDLEWARE ====
 app.use(cors({
   origin: "https://classy-gumption-67c9e2.netlify.app",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type"]
 }));
-
-// ✅ Middleware parsing JSON
 app.use(express.json());
-
-
 
 // ==== KONEKSI DATABASE ====
 const DB_PATH = process.env.DB_PATH || "./data.db";
-const db      = new sqlite3.Database(DB_PATH, (err) => {
-  if (err) {
-    console.error("❌ Gagal koneksi ke database:", err.message);
-  } else {
-    console.log("✅ Berhasil koneksi ke database:", DB_PATH);
-  }
+const db = new sqlite3.Database(DB_PATH, (err) => {
+  if (err) console.error("❌ Gagal koneksi ke database:", err.message);
+  else console.log("✅ Berhasil koneksi ke database:", DB_PATH);
 });
 
-// --- Wrapper supaya API mirip sqlite3 callback --- //
-["run", "get", "all"].forEach((m) => {
-  const fn = m === "run"
-    ? (sql, params) => db.prepare(sql).run(params)
-    : m === "get"
-      ? (sql, params) => db.prepare(sql).get(params)
-      : (sql, params) => db.prepare(sql).all(params);
-
-  // override: terima callback seperti versi lama
-  db[m] = (sql, params = [], cb = () => {}) => {
-    try {
-      const result = fn(sql, params);
-      cb(null, result);
-    } catch (err) {
-      cb(err);
-    }
-  };
-});
-
-
-// Membuat tabel users jika belum ada
+// ==== INISIALISASI TABEL USERS ====
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE,
     password TEXT
-  )`, (err) => {
-    if (err) {
-      console.error("Gagal membuat tabel users:", err.message);
-    } else {
-      console.log("Tabel users berhasil dibuat atau sudah ada.");
-    }
-  });
-
-  // Menambahkan user admin jika belum ada
+  )`);
   db.get("SELECT * FROM users WHERE username = 'admin'", (err, row) => {
-    if (err) {
-      console.error("Gagal memeriksa user admin:", err.message);
-    } else if (!row) {
-      db.run("INSERT INTO users (username, password) VALUES (?, ?)", ['admin', 'admin'], (err) => {
-        if (err) {
-          console.error("Gagal menambahkan user admin:", err.message);
-        } else {
-          console.log("User admin berhasil ditambahkan.");
-        }
-      });
+    if (!row) {
+      db.run("INSERT INTO users (username, password) VALUES (?, ?)", ['admin', 'admin']);
     }
   });
 });
 
-
-// Hapus Barang Masuk
-app.delete("/api/barang-masuk/:id", (req, res) => {
-  const { id } = req.params;
-
-  
-
-   db.get("SELECT * FROM barang_masuk WHERE id = ?", [id], (err, row) => {
-  if (err || !row) {
-    return res.status(404).json({ error: "Data barang masuk tidak ditemukan" });
-  }
-
-  db.run("DELETE FROM barang_keluar WHERE kode = ? AND unit = ?", [row.kode, row.unit], function (err) {
-    if (err) return res.status(500).json({ error: "Gagal hapus barang keluar terkait" });
-
-    db.run("DELETE FROM barang_masuk WHERE id = ?", [id], function (err) {
-      if (err) return res.status(500).json({ error: "Gagal hapus barang masuk" });
-
-      syncInventory(row.kode, row.nama, -row.jumlah, row.satuan, row.unit);
-      res.json({ message: "Barang masuk dan keluar terkait berhasil dihapus" });
-    });
-  });
-});
-
-    // Hapus barang masuk
-    db.run("DELETE FROM barang_masuk WHERE id = ?", [id], function (err) {
-      if (err) {
-        console.error("Error saat menghapus barang masuk:", err.message);
-        return res.status(500).json({ error: "Gagal menghapus barang masuk" });
-      }
-            // Edit Barang Masuk
-app.put("/api/barang-masuk/:id", (req, res) => {
-  const { id } = req.params;
-  const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
-
-  // Ambil data barang masuk sebelum diupdate
-  db.get("SELECT kode, nama, jumlah, satuan, unit FROM barang_masuk WHERE id = ?", [id], (err, oldRow) => {
-    if (err) {
-      console.error("Error saat mengambil data barang masuk sebelum update:", err.message);
-      return res.status(500).json({ error: "Gagal mengambil data barang masuk" });
-    }
-
-    if (!oldRow) {
-      return res.status(404).json({ error: "Barang masuk tidak ditemukan" });
-    }
-
-    // Hitung delta jumlah untuk sinkronisasi inventory
-    const deltaJumlah = jumlah - oldRow.jumlah;
-
-    // Update barang masuk
-    db.run(`UPDATE barang_masuk SET tanggal = ?, kode = ?, nama = ?, jumlah = ?, satuan = ?, unit = ? WHERE id = ?`,
-      [tanggal, kode, nama, jumlah, satuan, unit, id], function (err) {
-        if (err) {
-          console.error("Error saat mengupdate barang masuk:", err.message);
-          return res.status(500).json({ error: "Gagal mengupdate barang masuk" });
-        }
-
-        // Sinkronisasi inventory: sesuaikan jumlah berdasarkan perubahan
-        syncInventory(kode, nama, deltaJumlah, satuan, unit);
-
-        console.log(`Barang masuk dengan ID ${id} berhasil diupdate`);
-        res.json({ message: "Barang masuk berhasil diupdate" });
-      }
-    );
-  });
-});
-
-
-
-
-
-      // Sinkronisasi inventory: kurangi jumlah barang di inventory
-      syncInventory(row.kode, row.nama, -row.jumlah, row.satuan, row.unit);
-
-      console.log(`Barang masuk dengan ID ${id} berhasil dihapus beserta barang keluar terkait`);
-      res.json({ message: "Barang masuk dan barang keluar terkait berhasil dihapus" });
-    });
-  });
-
-
-
-// Edit Barang Inventory
-app.put("/api/inventory/:id", (req, res) => {
-  const { id } = req.params;
-  const { tanggal, kode, nama, alias, jumlah, satuan, unit } = req.body;
-
-  db.run(
-    `UPDATE inventory SET tanggal = ?, kode = ?, nama = ?, alias = ?, jumlah = ?, satuan = ?, unit = ? WHERE id = ?`,
-    [tanggal, kode, nama, alias, jumlah, satuan, unit, id],
-    function (err) {
-      if (err) {
-        console.error("Error saat mengupdate inventory:", err.message);
-        return res.status(500).json({ error: "Gagal mengupdate inventory" });
-      }
-
-      console.log(`Barang inventory dengan ID ${id} berhasil diupdate`);
-      res.json({ message: "Inventory berhasil diupdate" });
-    }
-  );
-});
-
-// === TABEL ===
+// ==== TABEL BARANG & INVENTORY ====
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS barang_masuk (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -193,37 +52,23 @@ db.serialize(() => {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tanggal TEXT, kode TEXT, nama TEXT, jumlah INTEGER, satuan TEXT, unit TEXT
   )`);
- db.run(`CREATE TABLE IF NOT EXISTS inventory (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  tanggal TEXT,
-  kode TEXT,
-  nama TEXT,
-  alias TEXT,
-  jumlah INTEGER,
-  satuan TEXT,
-  unit TEXT,
-  UNIQUE(kode, unit)  -- ✅ PENTING untuk mencegah dobel
-)`);
-
+  db.run(`CREATE TABLE IF NOT EXISTS inventory (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tanggal TEXT, kode TEXT, nama TEXT, alias TEXT, jumlah INTEGER, satuan TEXT, unit TEXT,
+    UNIQUE(kode, unit)
+  )`);
 });
 
-const upload = multer({ dest: "uploads/" });
-
+// ==== FUNGSI BANTUAN ====
 function normalizeUnit(unit) {
   if (!unit || unit.trim() === "" || unit.trim() === "-") return "Tanpa Unit";
   const map = {
-    "BM100": "BM 100",
-    "BROKK BM 100": "BM 100",
-    "BM 90": "BM 90",
-    "BROKK BM 90": "BM 90",
-    "Forklift 3T": "Forklift",
-    "Forklift 3 Ton": "Forklift",
-    "Forklift": "Forklift",
-    "forklift": "Forklift",
-    "FORKLIFT": "Forklift",
+    "BM100": "BM 100", "BROKK BM 100": "BM 100",
+    "BM 90": "BM 90", "BROKK BM 90": "BM 90",
+    "Forklift 3T": "Forklift", "Forklift 3 Ton": "Forklift",
+    "Forklift": "Forklift", "forklift": "Forklift", "FORKLIFT": "Forklift",
     "HCR 120D": "HCR 120D",
-    "Excavator 01": "Excavator 01",
-    "Excavator 02": "Excavator 02",
+    "Excavator 01": "Excavator 01", "Excavator 02": "Excavator 02",
   };
   return map[unit.trim()] || unit.trim();
 }
@@ -242,46 +87,28 @@ function syncInventory(kode, nama, delta, satuan, unit) {
     if (row) {
       const newJumlah = row.jumlah + delta;
       if (newJumlah > 0) {
-        db.run(`UPDATE inventory SET jumlah = ?, tanggal = ? WHERE id = ?`, [newJumlah, today, row.id], (err) => {
-          if (err) console.error("Error mengupdate inventory:", err.message);
-        });
+        db.run(`UPDATE inventory SET jumlah = ?, tanggal = ? WHERE id = ?`, [newJumlah, today, row.id]);
       } else {
-        db.run(`DELETE FROM inventory WHERE id = ?`, [row.id], (err) => {
-          if (err) console.error("Error menghapus dari inventory:", err.message);
-          else console.log(`Barang dengan kode ${kode} berhasil dihapus dari inventory`);
-        });
+        db.run(`DELETE FROM inventory WHERE id = ?`, [row.id]);
       }
     } else if (delta > 0) {
-      db.run(`
-  INSERT INTO inventory (tanggal, kode, nama, jumlah, satuan, unit)
-  SELECT ?, ?, ?, ?, ?, ?
-  WHERE NOT EXISTS (
-    SELECT 1 FROM inventory WHERE kode = ? AND unit = ?
-  )
-`, [today, kode, nama, delta, satuan, unit, kode, unit], (err) => {
-  if (err) console.error("Error menambah ke inventory:", err.message);
-  else console.log(`Barang dengan kode ${kode} berhasil ditambahkan ke inventory`);
-});
-
+      db.run(`INSERT INTO inventory (tanggal, kode, nama, jumlah, satuan, unit)
+              SELECT ?, ?, ?, ?, ?, ? WHERE NOT EXISTS
+              (SELECT 1 FROM inventory WHERE kode = ? AND unit = ?)`,
+        [today, kode, nama, delta, satuan, unit, kode, unit]);
     }
   });
 }
 
-
-// ========== LOGIN ==========
-// API Login Sederhana (tanpa bcrypt)
+// ==== LOGIN ====
 app.post("/api/login", (req, res) => {
   const { username, password } = req.body;
-
-  // Login langsung tanpa hashing
   if (username === "admin" && password === "admin") {
     res.json({ success: true, message: "Login berhasil" });
   } else {
     res.status(401).json({ success: false, message: "Username atau password salah" });
   }
 });
-
-
 
 // ========== API ==========
 app.get("/api/barang-masuk", (req, res) => {
@@ -363,7 +190,12 @@ app.get("/api/barang-keluar", (req, res) => {
 });
 
   
-  // Ambil data barang masuk sebelum diupdate
+    // Edit Barang Masuk
+app.put("/api/barang-masuk/:id", (req, res) => {
+  const { id } = req.params;
+  const { tanggal, kode, nama, jumlah, satuan, unit } = req.body;
+
+  db.get("SELECT * FROM barang_masuk WHERE id = ?", [id], (err, oldRow) => {
     if (err) {
       console.error("Error saat mengambil data barang masuk sebelum update:", err.message);
       return res.status(500).json({ error: "Gagal mengambil data barang masuk" });
@@ -372,6 +204,20 @@ app.get("/api/barang-keluar", (req, res) => {
     if (!oldRow) {
       return res.status(404).json({ error: "Barang masuk tidak ditemukan" });
     }
+
+    const deltaJumlah = jumlah - oldRow.jumlah;
+    db.run(`UPDATE barang_masuk SET tanggal = ?, kode = ?, nama = ?, jumlah = ?, satuan = ?, unit = ? WHERE id = ?`,
+      [tanggal, kode, nama, jumlah, satuan, unit, id], function (err) {
+        if (err) {
+          console.error("Error saat mengupdate barang masuk:", err.message);
+          return res.status(500).json({ error: "Gagal mengupdate barang masuk" });
+        }
+
+        syncInventory(kode, nama, deltaJumlah, satuan, unit);
+        res.json({ message: "Barang masuk berhasil diupdate" });
+      });
+  });
+});
 
     // Hitung delta jumlah untuk sinkronisasi inventory
     const deltaJumlah = jumlah - oldRow.jumlah;
