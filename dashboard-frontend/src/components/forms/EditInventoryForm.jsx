@@ -67,7 +67,7 @@ export default function EditInventoryForm({ item, onClose, onUpdated }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium">Alias (Opsional)</label>
+        <label className="block text-sm font-medium">Catatan Tambahan (Opsional)</label>
         <input
           type="text"
           name="alias"

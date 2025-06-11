@@ -402,6 +402,7 @@ app.get("/api/inventory", (req, res) => {
     res.json(rows);
   });
 });
+
 app.put("/api/inventory/:id", (req, res) => {
   const { id } = req.params;
   const { kode, nama, alias, satuan, unit } = req.body;
