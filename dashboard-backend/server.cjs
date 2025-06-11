@@ -81,21 +81,25 @@ function convertExcelDate(excelDate) {
   return !isNaN(parsed.getTime()) ? parsed.toISOString().split("T")[0] : "";
 }
 
-function syncInventory(kode, nama, delta, satuan, unit) {
+function syncInventory(kode, nama, jumlah, satuan, unit) {
   const today = new Date().toISOString().split("T")[0];
   db.get(`SELECT * FROM inventory WHERE kode = ? AND unit = ?`, [kode, unit], (err, row) => {
     if (row) {
-      const newJumlah = row.jumlah + delta;
-      if (newJumlah > 0) {
-        db.run(`UPDATE inventory SET jumlah = ?, tanggal = ? WHERE id = ?`, [newJumlah, today, row.id]);
-      } else {
-        db.run(`DELETE FROM inventory WHERE id = ?`, [row.id]);
-      }
-    } else if (delta > 0) {
+      // Update jumlah yang sudah ada
+      db.run(`UPDATE inventory SET jumlah = ?, tanggal = ? WHERE id = ?`, [jumlah, today, row.id], (err) => {
+        if (err) {
+          console.error("Error mengupdate inventory:", err.message);
+        }
+      });
+    } else if (jumlah > 0) {
+      // Insert item baru jika belum ada di inventory
       db.run(`INSERT INTO inventory (tanggal, kode, nama, jumlah, satuan, unit)
-              SELECT ?, ?, ?, ?, ?, ? WHERE NOT EXISTS
-              (SELECT 1 FROM inventory WHERE kode = ? AND unit = ?)`,
-        [today, kode, nama, delta, satuan, unit, kode, unit]);
+              VALUES (?, ?, ?, ?, ?, ?)`,
+        [today, kode, nama, jumlah, satuan, unit], (err) => {
+          if (err) {
+            console.error("Error menambahkan inventory baru:", err.message);
+          }
+        });
     }
   });
 }

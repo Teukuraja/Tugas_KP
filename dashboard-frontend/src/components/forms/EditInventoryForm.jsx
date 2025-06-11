@@ -2,6 +2,8 @@
 import { useState } from "react";
 import Button from "../ui/Button";
 import { toast } from "react-hot-toast";
+import baseURL from "../../api";  // Sesuaikan dengan lokasi api.js
+
 
 // === Komponen EditInventoryForm untuk form edit data inventory ===
 export default function EditInventoryForm({ item, onClose, onUpdated }) {
@@ -23,22 +25,25 @@ export default function EditInventoryForm({ item, onClose, onUpdated }) {
   };
 
   // Handler submit form untuk update data ke server
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch(`http://localhost:3001/api/inventory/${item.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      if (!res.ok) throw new Error("Gagal mengupdate data");
-      toast.success("Data berhasil diperbarui!");
-      onUpdated();
-      onClose();
-    } catch (err) {
-      toast.error("Gagal menyimpan perubahan");
-    }
-  };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const res = await fetch(`${baseURL}/api/inventory/${item.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData), // Pastikan body sesuai dengan format yang dibutuhkan oleh backend
+    });
+    
+    if (!res.ok) throw new Error("Gagal mengupdate data");
+    
+    toast.success("Data berhasil diperbarui!");
+    onUpdated();  // Memanggil fungsi onUpdated setelah data berhasil diupdate
+    onClose();    // Menutup modal setelah update
+  } catch (err) {
+    toast.error("Gagal menyimpan perubahan: " + err.message);  // Tampilkan error jika ada
+  }
+};
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
