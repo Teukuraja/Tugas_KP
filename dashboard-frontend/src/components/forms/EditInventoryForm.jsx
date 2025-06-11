@@ -1,56 +1,59 @@
-
 import { useState } from "react";
 import Button from "../ui/Button";
 import { toast } from "react-hot-toast";
 import baseURL from "../../api";  // Sesuaikan dengan lokasi api.js
 
-
-// === Komponen EditInventoryForm untuk form edit data inventory ===
 export default function EditInventoryForm({ item, onClose, onUpdated }) {
-  // State form dengan nilai awal dari item
+  // State form tanpa 'jumlah' dan 'tanggal'
   const [formData, setFormData] = useState({
-    tanggal: item.tanggal,
     kode: item.kode,
     nama: item.nama,
     alias: item.alias || "",
-    jumlah: item.jumlah,
     satuan: item.satuan,
     unit: item.unit,
   });
-const handleChange = (e) => {
-  const { name, value } = e.target;
 
-  setFormData((prev) => ({
-    ...prev,
-    [name]: name === "jumlah" ? Number(value) : value,
-  }));
-};
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-Submit = async (e) => {
-  e.preventDefault();
-  try {
-    // Periksa apakah formData sudah benar
-    console.log('Form data:', formData);
-    
-    const res = await fetch(`${baseURL}/api/inventory/${item.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData), // Pastikan body sesuai dengan format yang dibutuhkan oleh backend
-    });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${baseURL}/api/inventory/${item.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
 
-    if (!res.ok) throw new Error("Gagal mengupdate data");
+      if (!res.ok) throw new Error("Gagal mengupdate data");
 
-    toast.success("Data berhasil diperbarui!");
-    onUpdated();  // Memanggil fungsi onUpdated setelah data berhasil diupdate
-    onClose();    // Menutup modal setelah update
-  } catch (err) {
-    toast.error("Gagal menyimpan perubahan: " + err.message);  // Tampilkan error jika ada
-  }
-};
+      toast.success("Data berhasil diperbarui!");
+      onUpdated();
+      onClose();
+    } catch (err) {
+      toast.error("Gagal menyimpan perubahan: " + err.message);
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <h2 className="text-lg font-semibold">Edit Data Inventory</h2>
+
+      <div>
+        <label className="block text-sm font-medium">Kode</label>
+        <input
+          type="text"
+          name="kode"
+          value={formData.kode}
+          onChange={handleChange}
+          className="w-full p-2 border rounded"
+        />
+      </div>
 
       <div>
         <label className="block text-sm font-medium">Nama Barang</label>
@@ -64,11 +67,11 @@ Submit = async (e) => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium">Jumlah</label>
+        <label className="block text-sm font-medium">Alias (Opsional)</label>
         <input
-          type="number"
-          name="jumlah"
-          value={formData.jumlah}
+          type="text"
+          name="alias"
+          value={formData.alias}
           onChange={handleChange}
           className="w-full p-2 border rounded"
         />

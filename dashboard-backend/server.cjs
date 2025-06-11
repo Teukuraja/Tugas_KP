@@ -404,11 +404,12 @@ app.get("/api/inventory", (req, res) => {
 });
 app.put("/api/inventory/:id", (req, res) => {
   const { id } = req.params;
-  const { tanggal, kode, nama, alias, jumlah, satuan, unit } = req.body;
+  const { kode, nama, alias, satuan, unit } = req.body;
 
+  // Ambil data lama untuk validasi keberadaan
   db.get("SELECT * FROM inventory WHERE id = ?", [id], (err, oldRow) => {
     if (err) {
-      console.error("Error saat mengambil data inventory sebelum update:", err.message);
+      console.error("❌ Gagal mengambil data inventory:", err.message);
       return res.status(500).json({ error: "Gagal mengambil data inventory" });
     }
 
@@ -416,18 +417,19 @@ app.put("/api/inventory/:id", (req, res) => {
       return res.status(404).json({ error: "Barang tidak ditemukan di inventory" });
     }
 
-    const deltaJumlah = jumlah - oldRow.jumlah;
-    db.run(`UPDATE inventory SET tanggal = ?, kode = ?, nama = ?, alias = ?, jumlah = ?, satuan = ?, unit = ? WHERE id = ?`,
-      [tanggal, kode, nama, alias, jumlah, satuan, unit, id], function (err) {
+    // Update hanya data statis, TIDAK mengubah jumlah
+    db.run(
+      `UPDATE inventory SET kode = ?, nama = ?, alias = ?, satuan = ?, unit = ? WHERE id = ?`,
+      [kode, nama, alias, satuan, unit, id],
+      function (err) {
         if (err) {
-          console.error("Error saat mengupdate inventory:", err.message);
+          console.error("❌ Gagal mengupdate inventory:", err.message);
           return res.status(500).json({ error: "Gagal mengupdate inventory" });
         }
 
-        // Sinkronisasi barang masuk atau keluar jika jumlah inventory berubah
-        syncInventory(kode, nama, deltaJumlah, satuan, unit);
-        res.json({ message: "Barang di inventory berhasil diupdate" });
-      });
+        res.json({ message: "Barang di inventory berhasil diupdate (jumlah tidak diubah)" });
+      }
+    );
   });
 });
 
