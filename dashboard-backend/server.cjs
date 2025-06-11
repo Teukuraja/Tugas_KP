@@ -7,7 +7,7 @@ const fs = require("fs");
 const sqlite3 = require("sqlite3").verbose();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8080;
 
 // ✅ Middleware untuk menerima upload file
 const upload = multer({ dest: "uploads/" });
