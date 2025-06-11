@@ -19,10 +19,14 @@ export default function EditInventoryForm({ item, onClose, onUpdated }) {
   });
 const handleChange = (e) => {
   const { name, value } = e.target;
-  setFormData((prev) => ({ ...prev, [name]: value }));
+
+  setFormData((prev) => ({
+    ...prev,
+    [name]: name === "jumlah" ? Number(value) : value,
+  }));
 };
 
-const handleSubmit = async (e) => {
+Submit = async (e) => {
   e.preventDefault();
   try {
     // Periksa apakah formData sudah benar
