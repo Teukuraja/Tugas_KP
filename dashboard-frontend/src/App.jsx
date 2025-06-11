@@ -20,7 +20,6 @@ import InventoryData from "./pages/InventoryData";
 import Logo from "./components/assets/logo.png";
 
 
-
 export default function App() {
   // State untuk mengatur sidebar terbuka atau tertutup
   const [sidebarOpen, setSidebarOpen] = useState(true);

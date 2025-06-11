@@ -54,6 +54,8 @@ export default function InventoryData() {
   }
 };
 
+
+
   useEffect(() => {
     fetchInventory();
   }, []);

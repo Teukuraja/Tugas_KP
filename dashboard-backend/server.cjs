@@ -367,7 +367,6 @@ app.get("/api/inventory", (req, res) => {
     res.json(rows);
   });
 });
-// edit barang di inventory
 app.put("/api/inventory/:id", (req, res) => {
   const { id } = req.params;
   const { tanggal, kode, nama, alias, jumlah, satuan, unit } = req.body;
@@ -396,6 +395,7 @@ app.put("/api/inventory/:id", (req, res) => {
       });
   });
 });
+
 
 
 // Hapus Barang dari Inventory
