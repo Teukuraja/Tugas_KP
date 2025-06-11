@@ -17,25 +17,25 @@ export default function EditInventoryForm({ item, onClose, onUpdated }) {
     satuan: item.satuan,
     unit: item.unit,
   });
+const handleChange = (e) => {
+  const { name, value } = e.target;
+  setFormData((prev) => ({ ...prev, [name]: value }));
+};
 
-  // Handler perubahan input form
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Handler submit form untuk update data ke server
 const handleSubmit = async (e) => {
   e.preventDefault();
   try {
+    // Periksa apakah formData sudah benar
+    console.log('Form data:', formData);
+    
     const res = await fetch(`${baseURL}/api/inventory/${item.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(formData), // Pastikan body sesuai dengan format yang dibutuhkan oleh backend
     });
-    
+
     if (!res.ok) throw new Error("Gagal mengupdate data");
-    
+
     toast.success("Data berhasil diperbarui!");
     onUpdated();  // Memanggil fungsi onUpdated setelah data berhasil diupdate
     onClose();    // Menutup modal setelah update
@@ -43,7 +43,6 @@ const handleSubmit = async (e) => {
     toast.error("Gagal menyimpan perubahan: " + err.message);  // Tampilkan error jika ada
   }
 };
-
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
