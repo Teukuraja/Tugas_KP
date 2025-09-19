@@ -3,7 +3,7 @@
 Sistem **Dashboard Analitik** untuk mengelola data **barang masuk**, **barang keluar**, dan **inventory**.  
 Proyek ini terdiri dari dua bagian utama:
 
-1. **Backend** → Server API menggunakan Node.js (Express, SQLite3 Mutler).  
+1. **Backend** → Server API menggunakan Node.js (Express, SQLite3,Mutler).  
 2. **Frontend** → Dashboard Web menggunakan React + Vite.  
 
 ---
