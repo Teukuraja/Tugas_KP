@@ -57,9 +57,10 @@ npm install
 
 # Jalankan frontend
 npm run dev
-
+```
 Frontend default berjalan di:
-
+```bash
 http://localhost:5173
 
 > Catatan: Pastikan baseURL di api.js mengarah ke backend (misalnya http://localhost:3000).
+```
