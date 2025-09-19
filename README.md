@@ -1,9 +1,9 @@
-# tugas_KP
+# Tugas_KP
 
 Sistem **Dashboard Analitik** untuk mengelola data **barang masuk**, **barang keluar**, dan **inventory**.  
 Proyek ini terdiri dari dua bagian utama:
 
-1. **Backend** → Server API menggunakan Node.js (Express, SQLite3, Multer).  
+1. **Backend** → Server API menggunakan Node.js (Express, SQLite3).  
 2. **Frontend** → Dashboard Web menggunakan React + Vite.  
 
 ---
@@ -21,7 +21,7 @@ Proyek ini terdiri dari dua bagian utama:
 ## 🛠️ Teknologi
 - **Backend**: Node.js (CJS), Express.js, SQLite3, Multer  
 - **Frontend**: React, Vite  
-- **Deployment**: Railway / Docker (opsional)
+- **Deployment**: Railway 
 
 ---
 
@@ -61,6 +61,6 @@ npm run dev
 Frontend default berjalan di:
 ```bash
 http://localhost:5173
-
-> Catatan: Pastikan baseURL di api.js mengarah ke backend (misalnya http://localhost:3000).
 ```
+> Catatan: Pastikan baseURL di api.js mengarah ke backend (misalnya http://localhost:3000).
+
