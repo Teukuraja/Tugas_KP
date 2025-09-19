@@ -36,11 +36,12 @@ cd Tugas_KP
 
 ### 2. Jalankan Backend
 ```bash
-cd dashboard-frontend
+cd dashboard-backend
 npm install
 
-# Jalankan frontend
-npm run dev
+# Jalankan server
+node server.js        # normal
+npm run dev           # jika menggunakan nodemon
 ```
 
 Server default berjalan di:
